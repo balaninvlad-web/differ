@@ -141,17 +141,28 @@ void Create_load_node (Tree_t* tree, FILE* dot_file, Node_t* node, size_t rank)
         color = "#fdfdfd";
     }
 
+    char value_str[50] = "";
+
+    if (node->type == OPERATORTYPE)
+        snprintf(value_str, sizeof(value_str), "%s", GetOperatorName(node->value.operator_type));
+    else if (node->type == VARIABLETYPE)
+        snprintf(value_str, sizeof(value_str), "%s", GetVariableName(node->value.variable_code));
+    else
+        snprintf(value_str, sizeof(value_str), "%d", node->value.number);
+
     fprintf(dot_file,
         "    node%p [label=<<TABLE BORDER='1' CELLBORDER='1' CELLSPACING='0'>"
         "<TR><TD COLSPAN='2'>add: %p</TD></TR>"
         "<TR><TD COLSPAN='2'>rank: %u</TD></TR>"
-        "<TR><TD COLSPAN='2'>type: %d</TD></TR>"
-        "<TR><TD COLSPAN='2'>value: %d</TD></TR>"
-        "<TR><TD>NO</TD><TD>YES</TD></TR>"
+        "<TR><TD COLSPAN='2'>type: %s</TD></TR>"
+        "<TR><TD COLSPAN='2'>value: %s</TD></TR>"
         "<TR><TD>%p</TD><TD>%p</TD></TR></TABLE>>, "
         "fillcolor=\"%s\", color=\"%s\", fontcolor=\"%s\"];\n",
-        (void*)node, (void*)node, (unsigned)rank, node->type, node->value,
-        (void*)node->left, (void*)node->right, fillcolor, color, color);
+        (void*)node, (void*)node, (unsigned)rank,
+        GetTypeName(node->type),
+        value_str,
+        (void*)node->left, (void*)node->right,
+        fillcolor, color, color);
 
     #ifdef DEBUG
         printf ("DEBUG: LOADBLOCK Writing TO file.....\n");
@@ -203,14 +214,33 @@ void Create_graph_node (Tree_t* tree, FILE* dot_file, Node_t* node)
         color = "#fdfdfd";
     }
 
+    char value_str[50] = "";
+
+    switch (node->type)
+    {
+        case OPERATORTYPE:
+            snprintf(value_str, sizeof(value_str), "%s", GetOperatorName(node->value.operator_type));
+            break;
+        case VARIABLETYPE:
+            snprintf(value_str, sizeof(value_str), "%s", GetVariableName(node->value.variable_code));
+            break;
+        case NUMBERTYPE:
+            snprintf(value_str, sizeof(value_str), "%d", node->value.number);
+            break;
+        default:
+            snprintf(value_str, sizeof(value_str), "UNKNOWN");
+    }
+
     fprintf (dot_file, "    node%p [label=<<TABLE BORDER='1' CELLBORDER='1' CELLSPACING='0'>"
             "<TR><TD COLSPAN='2'>addr: %p</TD></TR>"
-            "<TR><TD COLSPAN='2'>type: %d</TD></TR>"
-            "<TR><TD COLSPAN='2'>value: %d</TD></TR>"
-            "<TR><TD>NO</TD><TD>YES</TD></TR>"
+            "<TR><TD COLSPAN='2'>type: %s</TD></TR>"
+            "<TR><TD COLSPAN='2'>value: %s</TD></TR>"
             "<TR><TD>%p</TD><TD>%p</TD></TR></TABLE>>, "
             "fillcolor=\"%s\", color=\"%s\", fontcolor=\"%s\"];\n",
-            (void*)node, (void*)node, node->type, node->value, (void*)node->left, (void*)node->right, fillcolor, color, color);
+            (void*)node, (void*)node,
+            GetTypeName(node->type),
+            value_str,
+            (void*)node->left, (void*)node->right, fillcolor, color, color);
 
     #ifdef DEBUG
         printf ("DEBUG: BLOCKS Writing TO file.....\n");
@@ -277,10 +307,11 @@ void Create_dump_files (Tree_t* tree, const char* file, const char* func, int li
     assert (reason);
 
     char formatted_reason[300] = {};
+
     va_list args = {};
     va_start (args, reason);
     vsnprintf (formatted_reason, sizeof(formatted_reason), reason, args);
-    va_end (args);
+    //va_end (args);
 
     int dump_type = DUMP_NORMAL;
     const char* buffer = NULL;
@@ -469,19 +500,27 @@ void PrintBuffer (FILE* html_file, const char* buffer_start, size_t position)
     size_t show_len = strlen(buffer_start);
     if (show_len > 500) show_len = 500;
 
-    fprintf(html_file, "\t<span class='getted-text'>%.*s</span>",
-            (int)position, buffer_start);
+    size_t getted_len = position > show_len ? show_len : position;
+
+    size_t notgetted_len = show_len - getted_len;
+
+    fprintf(html_file, "\t<span class='getted-text'>");
+    EscapeHtml(html_file, buffer_start, getted_len);
+    fprintf(html_file, "</span>");
+
     fprintf(html_file, "\t<span class='cursor'>|</span>");
-    fprintf(html_file, "\t<span class='notgetted-text'>%.*s</span>",
-            (int)(show_len - position), buffer_start + position);
+
+    fprintf(html_file, "\t<span class='notgetted-text'>");
+    EscapeHtml(html_file, buffer_start + getted_len, notgetted_len);
+    fprintf(html_file, "</span>");
+
     fprintf(html_file, "\t</div>\n");
 
-    size_t len = strlen(buffer_start);
-    if (len > 0)
+    if (show_len > 0)
     {
-        int percent = (int)((position * 100) / len);
+        int percent = (int)((position * 100) / show_len);
         fprintf(html_file, "\t<div class='buffer-stats'>Position: %u/%u (%d%%)</div>\n",
-               (unsigned)position, (unsigned)len, percent);
+               (unsigned)position, (unsigned)show_len, percent);
     }
 
     fprintf(html_file, "\t</div>\n");
@@ -497,5 +536,62 @@ void Close_html_file(void)
         fclose(html_file);
         html_file = NULL;
         printf("HTML file closed successfully\n");
+    }
+}
+
+const char* GetTypeName (int type)
+{
+    switch (type)
+    {
+        case NUMBERTYPE:   return "NUMBER";
+        case VARIABLETYPE: return "VARIABLE";
+        case OPERATORTYPE: return "OPERATOR";
+        default:           return "UNKNOWN";
+    }
+}
+
+const char* GetOperatorName (int value)
+{
+    switch (value)
+    {
+        case ADD: return "ADD";
+        case SUB: return "SUB";
+        case MUL: return "MUL";
+        case DIV: return "DIV";
+        case POW: return "POW";
+        case SIN: return "SIN";
+        case COS: return "COS";
+        case TAN: return "TAN";
+        case LN:  return "LN";
+        default:  return "UNKNOWN_OP";
+    }
+}
+
+const char* GetVariableName (int value)
+{
+    switch (value)
+    {
+        case ARGX: return "x";
+        case ARGY: return "y";
+        case ARGZ: return "z";
+        default:   return "UNKNOWN_VAR";
+    }
+}
+
+void EscapeHtml(FILE* html_file, const char* text, size_t len)
+{
+    if (text == NULL) return;
+
+    for (size_t i = 0; i < len && text[i] != '\0'; i++)
+    {
+        switch (text[i])
+        {
+            case '<': fputs("&lt;", html_file); break;
+            case '>': fputs("&gt;", html_file); break;
+            case '&': fputs("&amp;", html_file); break;
+            case '"': fputs("&quot;", html_file); break;
+            case '\'': fputs("&#39;", html_file); break;
+            default: fputc(text[i], html_file); break;
+        }
     }
 }

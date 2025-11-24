@@ -35,8 +35,22 @@ int main (int argc, char* argv[])
     double result = EvaluateTreeAdvanced(Tree);
     printf("Result: %f\n", result);
 
+    printf("\n=== DIFFERENTIATION ===\n");
+    Tree_t* DiffTree = NULL;
+    TreeCtor(&DiffTree);
+
+    DiffTree->root = DifferentiateNode (Tree, Tree->root, 'x');
+
+    printf("Derivative tree: ");
+    PrintNode(DiffTree->root);
+    printf("\n");
+
+    QUICK_DUMP (Tree, "Original tree");
+    QUICK_DUMP (DiffTree, "Derivative tree");
 
     Create_log_file (Tree, "tree_dump.dot", DUMP_NORMAL, NULL);
+
+    CreateLaTeXDumpFile ("dump.tex", Tree, DiffTree);
 
     system("dot -V");
     Close_html_file();

@@ -1,11 +1,38 @@
 #include "differenciator.h"
 #include "create_dump_files.h"
 
-const int DUMMY_VALUE = 0xC0C1C0DE;
+Node_t* CreateNumberNode (Tree_t* tree, int number)
+{
+    union NodeValue value;
+    value.number = number;
+    return NodeCtor(tree, NUMBERTYPE, value);
+}
+
+Node_t* CreateVariableNode (Tree_t* tree, int variable_code)
+{
+    union NodeValue value;
+    value.variable_code = variable_code;
+    return NodeCtor(tree, VARIABLETYPE, value);
+}
+
+Node_t* CreateOperatorNode (Tree_t* tree, int operator_type, Node_t* left, Node_t* right)
+{
+    union NodeValue value;
+    value.operator_type = operator_type;
+    Node_t* node = NodeCtor(tree, OPERATORTYPE, value);
+    if (node)
+    {
+        node->left = left;
+        node->right = right;
+    }
+    return node;
+}
 
 TreeErr_t TreeCtor (Tree_t** tree)
 {
-    *tree = (Tree_t*)calloc(1, sizeof(Tree_t));
+    assert (tree);
+
+    *tree = (Tree_t*) calloc (1, sizeof(Tree_t));
 
     if (!*tree)
     {
@@ -24,11 +51,11 @@ TreeErr_t TreeCtor (Tree_t** tree)
     return NOERORR;
 }
 
-TreeErr_t TreeInsertLeft (Tree_t* tree, Node_t* parent, int type, int value)
+TreeErr_t TreeInsertLeft (Tree_t* tree, Node_t* parent, int type, union NodeValue value)
 {
     if (!tree || !parent) return ERORRNODENULL;
 
-    Node_t* left_node = NodeCtor(tree, type, value);
+    Node_t* left_node = NodeCtor (tree, type,  (union NodeValue)value);
 
     if (!left_node)
     {
@@ -42,11 +69,11 @@ TreeErr_t TreeInsertLeft (Tree_t* tree, Node_t* parent, int type, int value)
     return NOERORR;
 }
 
-TreeErr_t TreeInsertRight (Tree_t* tree, Node_t* parent, int type, int value)
+TreeErr_t TreeInsertRight (Tree_t* tree, Node_t* parent, int type, union NodeValue value)
 {
     if (!tree || !parent) return ERORRNODENULL;
 
-    Node_t* right_node = NodeCtor(tree, type, value);
+    Node_t* right_node = NodeCtor (tree, type,  (union NodeValue)value);
 
     if (!right_node)
     {
@@ -60,7 +87,7 @@ TreeErr_t TreeInsertRight (Tree_t* tree, Node_t* parent, int type, int value)
     return NOERORR;
 }
 
-Node_t* TreeInsertNode (Tree_t* tree, int type, int value)
+Node_t* TreeInsertNode (Tree_t* tree, int type, union NodeValue value)
 {
     if (!tree) return NULL;
 
@@ -82,11 +109,11 @@ Node_t* TreeInsertNode (Tree_t* tree, int type, int value)
     return node;
 }
 
-TreeErr_t TreeInsertRoot (Tree_t* tree, int type, int value)
+TreeErr_t TreeInsertRoot (Tree_t* tree, int type, union NodeValue value)
 {
     if (!tree) return ERORRNODENULL;
 
-    Node_t* root_node = NodeCtor(tree, type, value);
+    Node_t* root_node = NodeCtor (tree, type, value);
 
     if (!root_node)
     {
@@ -99,7 +126,7 @@ TreeErr_t TreeInsertRoot (Tree_t* tree, int type, int value)
     return NOERORR;
 }
 
-Node_t* NodeCtor (Tree_t* tree, int type, int value)
+Node_t* NodeCtor (Tree_t* tree, int type, union NodeValue value)
 {
     assert(tree);
 
@@ -139,15 +166,25 @@ TreeErr_t PrintNode (const Node_t* node)
         return ERORRNODENULL;
     }
 
-    printf("(");
+    printf ("(");
 
-    if (node->left)
-        PrintNode(node->left);
-
-    printf ("T:%d; V:%d", node->type, node->value);
+    switch (node->type)
+    {
+        case NUMBERTYPE:
+            printf ("NUM:%d", node->value.number);
+            break;
+        case VARIABLETYPE:
+            printf ("VAR:%c", GetterNameVariable (node->value.variable_code));
+            break;
+        case OPERATORTYPE:
+            printf ("OP:%s", GetOperatorName (node->value.variable_code));
+            break;
+        default:
+            printf ("UNKNOWN");
+    }
 
     if (node->right)
-        PrintNode(node->right);
+        PrintNode (node->right);
 
     printf(")");
 
