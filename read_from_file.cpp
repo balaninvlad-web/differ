@@ -34,13 +34,13 @@ const char* ReadCommand(const char* current, int* pos_in_buffer, int* type, unio
     data[i] = '\0';
 
     #ifdef DEBUG
-        printf ("DEBUG: ReadCommand type: '%s'\n", *type);
+        printf ("DEBUG: ReadCommand type: '%d'\n", *type);
     #endif
 
     DetermineType(data, type, value);
 
     #ifdef DEBUG
-        printf ("DEBUG: ReadCommand result: type=%d, value=%d\n", *type, *value);
+        printf ("DEBUG: ReadCommand result: type=%d", *type);
     #endif
 
     return current;
@@ -95,7 +95,7 @@ Node_t* LoadTreeFromFile(Tree_t* tree, const char** buffer, int* pos_in_buffer,
             LOADING_BASE_DUMP (tree, *buffer, *pos_in_buffer, "Node created", progress, buffer_start);
         #endif
 
-        if (progress) AddNodeToLoadProgress(progress, node, current_level);
+        if (progress) AddNodeToLoadProgress (progress, node, current_level);
 
         // TODO: GetNodeInfo
 

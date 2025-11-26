@@ -169,4 +169,6 @@ Node_t* CreateNumberNode (Tree_t* tree, int number);
 Node_t* CreateVariableNode (Tree_t* tree, int variable_code);
 Node_t* CreateOperatorNode (Tree_t* tree, int operator_type, Node_t* left, Node_t* right);
 
+//#include "create_latex_dump.h"
+
 #endif // DIFFERENCIATOR_H

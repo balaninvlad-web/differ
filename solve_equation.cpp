@@ -93,13 +93,8 @@ double EvaluateNodeAdvanced (Node_t* node, Variable_t* variables, int var_count)
             char var_name = GetterNameVariable (node->value.variable_code);
 
             // TODO: GetVariableValue
-            for (int i = 0; i < var_count; i++)
-            {
-                if (variables[i].name == var_name)
-                    return variables[i].value;
-            }
-            printf ("Variable '%c' not found!\n", var_name);
-            return NAN;
+
+            return GetVariableValue (var_name, variables, var_count);
         }
         case OPERATORTYPE:
             return EvaluateOperator (node, variables, var_count);

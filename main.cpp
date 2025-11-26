@@ -1,5 +1,6 @@
 #include "differenciator.h"
 #include "create_dump_files.h"
+#include "create_latex_dump.h"
 
 int main (int argc, char* argv[])
 {
@@ -16,7 +17,7 @@ int main (int argc, char* argv[])
         TreeErr_t load_result = LoadDatabase (Tree, input_filename);
         if (load_result != NOERORR)
         {
-            printf("Failed to load from %s, creating default tree...\n", input_filename);
+            printf ("Failed to load from %s, creating default tree...\n", input_filename);
             CreateDefaultTree (Tree);
         }
     }
@@ -33,25 +34,27 @@ int main (int argc, char* argv[])
     printf ("\n");
 
     double result = EvaluateTreeAdvanced(Tree);
-    printf("Result: %f\n", result);
+    printf ("Result: %f\n", result);
 
     printf("\n=== DIFFERENTIATION ===\n");
     Tree_t* DiffTree = NULL;
-    TreeCtor(&DiffTree);
+    TreeCtor (&DiffTree);
 
-    DiffTree->root = DifferentiateNode (Tree, Tree->root, 'x');
+    DiffTree->root = DifferentiateNode (Tree, Tree->root, 'A');
 
-    printf("Derivative tree: ");
-    PrintNode(DiffTree->root);
-    printf("\n");
+    printf ("Derivative tree: ");
+    PrintNode (DiffTree->root);
+    printf ("\n");
 
     QUICK_DUMP (Tree, "Original tree");
-    QUICK_DUMP (DiffTree, "Derivative tree");
+    QUICK_DUMP (DiffTree, "Derivative tree is ready");
 
     Create_log_file (Tree, "tree_dump.dot", DUMP_NORMAL, NULL);
 
     CreateLaTeXDumpFile ("dump.tex", Tree, DiffTree);
 
-    system("dot -V");
-    Close_html_file();
+    system ("dot -V");
+    Close_html_file ();
+    TreeDtor (Tree);
+    TreeDtor (DiffTree);
 }

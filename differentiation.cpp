@@ -1,5 +1,6 @@
 #include "differenciator.h"
 #include "differentiation.h"
+#include "create_dump_files.h"
 
 Node_t* CopySubtree (Tree_t* tree, Node_t* node)
 {
