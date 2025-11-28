@@ -16,6 +16,8 @@ static StructCmd command_table[] =
     {"x"    , {.variable_code = ARGX}, VARIABLETYPE},
     {"y"    , {.variable_code = ARGY}, VARIABLETYPE},
     {"z"    , {.variable_code = ARGZ}, VARIABLETYPE},
+    {"A"    , {.variable_code = ARGA}, VARIABLETYPE},
+    {"B"    , {.variable_code = ARGB}, VARIABLETYPE},
 
     {NULL   , 0, 0}
 };

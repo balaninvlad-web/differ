@@ -12,50 +12,54 @@ int GetT ();
 int GetE ();
 int GetP ();
 
-const char* str = "10*2+5*(45+30/5)";
-size_t pos = 0;
+//const char* *buffer = "10*2+5*(45+30/5)";
+//size_t *pos_in_buffer = 0;
 
-int main()
+Node_t* LoadTreeFromFile(Tree_t* tree, const char** buffer, int* pos_in_buffer,
+                         LoadProgress* progress, const char* buffer_start, int current_level)
 {
-    int result = GetG();
+    tree->root = GetG();
 
-    printf("Результат выражения %s = %d\n", str, result);
+    printf("Результат выражения %s = %d\n", *buffer, result);
 
     return 0;
 }
 
-int GetG ()
+int GetG (Tree_t* tree, const char** buffer, int* pos_in_buffer,
+          LoadProgress* progress, const char* buffer_start, int current_level)
 {
-    int val = GetE ();
+    tree->root = GetE ();
 
-    if (str[pos] != '\0')
+    if (*buffer[pos_in_buffer] != '\0')
         printf ("ERORR: in GetG");
-    pos++;
+    pos_in_buffer++;
 
     return val;
 }
 
-int GetN ()
+int GetN (Tree_t* tree, const char** buffer, int* pos_in_buffer,
+          LoadProgress* progress, const char* buffer_start, int current_level)
 {
     int val = 0;
 
-    while ('0' <= str[pos] && str[pos] <= '9')
+    while ('0' <= *buffer[*pos_in_buffer] && *buffer[*pos_in_buffer] <= '9')
     {
-        val = val*10 + (str[pos]-'0');
-        pos++;
+        val = val*10 + (*buffer[*pos_in_buffer]-'0');
+        *pos_in_buffer++;
     }
     return val;
 
 }
 
-int GetE ()
+int GetE (Tree_t* tree, const char** buffer, int* pos_in_buffer,
+          LoadProgress* progress, const char* buffer_start, int current_level)
 {
     int val = GetT ();
 
-    while (str[pos] == '+' || str[pos] == '-')
+    while (*buffer[*pos_in_buffer] == '+' || *buffer[*pos_in_buffer] == '-')
     {
-        char op = str[pos];
-        pos++;
+        char op = *buffer[*pos_in_buffer];
+        *pos_in_buffer++;
         int val2 = GetT();
 
         if (op == '+')
@@ -66,15 +70,16 @@ int GetE ()
     return val;
 }
 
-int GetT ()
+int GetT (Tree_t* tree, const char** buffer, int* pos_in_buffer,
+          LoadProgress* progress, const char* buffer_start, int current_level)
 {
     int val = GetP ();
 
-    while (str[pos] == '*' || str[pos] == '/')
+    while (*buffer[*pos_in_buffer] == '*' || *buffer[*pos_in_buffer] == '/')
     {
-        char op = str[pos];
+        char op = *buffer[*pos_in_buffer];
 
-        pos++;
+        *pos_in_buffer++;
 
         int val2 = GetP ();
 
@@ -86,16 +91,17 @@ int GetT ()
     return val;
 }
 
-int GetP ()
+int GetP (Tree_t* tree, const char** buffer, int* pos_in_buffer,
+          LoadProgress* progress, const char* buffer_start, int current_level)
 {
-    if (str[pos] == '(')
+    if (*buffer[*pos_in_buffer] == '(')
     {
-        pos++;
+        *pos_in_buffer++;
 
         int val = GetE ();
 
-        if (str[pos] == ')')
-            pos++;
+        if (*buffer[*pos_in_buffer] == ')')
+            *pos_in_buffer++;
         else
             printf ("ERORR: in GetP\n");
 

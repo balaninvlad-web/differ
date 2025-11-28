@@ -1,14 +1,23 @@
-#ifndef CREATE_LATEX_DUMP_H
-#define CREATE_LATEX_DUMP_H
+// create_latex_dump_adapted.h
+#ifndef CREATE_LATEX_DUMP_ADAPTED_H
+#define CREATE_LATEX_DUMP_ADAPTED_H
 
-int CreateLaTeXDumpFile (const char* tex_filename, Tree_t* tree, Tree_t* Difftree);
-void Create_head_tex (FILE** latex_file, const char* tex_filename);
-void Add_expression_to_latex (FILE* tex_file, Tree_t* tree, const char* title);
-void Add_derivative_to_latex (FILE* tex_file, Tree_t* tree, const char* variable);
-void Close_latex_file (FILE* tex_file);
-void print_tree_latex (FILE* file, Node_t* node);
-int CreateLaTeXDumpPdf (const char* tex_filename);
-void print_unary_operator (FILE* file, const char* op_name, Node_t* operand);
-void print_operand_with_brackets (FILE* file, Node_t* operand, bool for_multiplication);
+#include "differenciator.h"
+
+const int MAX_LATEX_EXPRESSION_LENGTH = 1000;
+
+// Функции для LaTeX дампа
+void NodeToLatexString(Node_t* node, char* buffer, int* pos, int buffer_size);
+int StartLatexDump(FILE* file);
+int EndLatexDump(FILE* file);
+int DumpOriginalFunctionToFile(FILE* file, Tree_t* tree, double result_value);
+int DumpOptimizationStepToFile(FILE* file, const char* description, Tree_t* tree, double result_value);
+int DumpDerivativeToFile(FILE* file, Tree_t* derivative_tree, double derivative_result, int derivative_order);
+const char* get_funny_phrase();
+void CreateAdaptedLatexDump(Tree_t* original_tree, Tree_t* diff_tree, int is_simplified);
+
+void CreateFullLatexDump(const char* filename, Tree_t* original_tree, Tree_t* diff_tree, int is_simplified, int max_iterations);
+void LatexDumpDiffStep(Tree_t* tree, const char* rule);
+void LatexDumpSimplifyStep(Tree_t* tree, const char* rule);
 
 #endif

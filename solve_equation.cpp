@@ -147,6 +147,8 @@ char GetterNameVariable (int variable_code)
         case ARGX: return 'x';
         case ARGY: return 'y';
         case ARGZ: return 'z';
+        case ARGA: return 'A';
+        case ARGB: return 'B';
         default  : return 'A';
     }
 }

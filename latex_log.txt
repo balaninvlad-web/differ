@@ -1,0 +1,45 @@
+This is pdfTeX, Version 3.141592653-2.6-1.40.25 (MiKTeX 24.1) (preloaded format=pdflatex.fmt)
+ restricted \write18 enabled.
+entering extended mode
+(dump.tex
+LaTeX2e <2023-11-01> patch level 1
+L3 programming layer <2024-01-04>
+(C:\Users\balan\AppData\Local\Programs\MiKTeX\tex/latex/base\article.cls
+Document Class: article 2023/05/17 v1.4n Standard LaTeX document class
+(C:\Users\balan\AppData\Local\Programs\MiKTeX\tex/latex/base\size10.clo))
+(C:\Users\balan\AppData\Local\Programs\MiKTeX\tex/latex/base\inputenc.sty)
+(C:\Users\balan\AppData\Local\Programs\MiKTeX\tex/latex/base\fontenc.sty
+(C:\Users\balan\AppData\Local\Programs\MiKTeX\tex/latex/cyrillic\t2aenc.def
+(C:\Users\balan\AppData\Local\Programs\MiKTeX\tex/latex/base\t2aenc.dfu))
+(C:\Users\balan\AppData\Local\Programs\MiKTeX\tex/latex/cyrillic\t2acmr.fd))
+(C:\Users\balan\AppData\Local\Programs\MiKTeX\tex/generic/babel\babel.sty
+(C:\Users\balan\AppData\Local\Programs\MiKTeX\tex/generic/babel\txtbabel.def)
+*************************************
+* Local config file bblopts.cfg used
+*
+(C:\Users\balan\AppData\Local\Programs\MiKTeX\tex/latex/arabi\bblopts.cfg)
+(C:\Users\balan\AppData\Local\Programs\MiKTeX\tex/latex/babel-english\english.l
+df)
+(C:\Users\balan\AppData\Local\Programs\MiKTeX\tex/latex/babel-russian\russianb.
+ldf))
+(C:\Users\balan\AppData\Local\Programs\MiKTeX\tex/generic/babel/locale/ru\babel
+-russian.tex)
+(C:\Users\balan\AppData\Local\Programs\MiKTeX\tex/generic/babel/locale/en\babel
+-english.tex)
+(C:\Users\balan\AppData\Local\Programs\MiKTeX\tex/latex/amsmath\amsmath.sty
+For additional information on amsmath, use the `?' option.
+(C:\Users\balan\AppData\Local\Programs\MiKTeX\tex/latex/amsmath\amstext.sty
+(C:\Users\balan\AppData\Local\Programs\MiKTeX\tex/latex/amsmath\amsgen.sty))
+(C:\Users\balan\AppData\Local\Programs\MiKTeX\tex/latex/amsmath\amsbsy.sty)
+(C:\Users\balan\AppData\Local\Programs\MiKTeX\tex/latex/amsmath\amsopn.sty))
+(C:\Users\balan\AppData\Local\Programs\MiKTeX\tex/latex/amsfonts\amssymb.sty
+(C:\Users\balan\AppData\Local\Programs\MiKTeX\tex/latex/amsfonts\amsfonts.sty))
+
+! Undefined control sequence.
+<recently read> \usepackege 
+                            
+l.6 \usepackege
+               {hypperref}
+!  ==> Fatal error occurred, no output PDF file produced!
+Transcript written on dump.log.
+pdflatex: major issue: So far, you have not checked for MiKTeX updates.

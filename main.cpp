@@ -1,6 +1,7 @@
 #include "differenciator.h"
 #include "create_dump_files.h"
 #include "create_latex_dump.h"
+#include "simplifying_the_equation.h"
 
 int main (int argc, char* argv[])
 {
@@ -49,9 +50,22 @@ int main (int argc, char* argv[])
     QUICK_DUMP (Tree, "Original tree");
     QUICK_DUMP (DiffTree, "Derivative tree is ready");
 
-    Create_log_file (Tree, "tree_dump.dot", DUMP_NORMAL, NULL);
+    bool simplified1 = SimplifyUntilStable(Tree, MAX_LOOP_SIMPLE);
+    printf("Tree simplified: %s\n", simplified1 ? "YES" : "NO");
+    QUICK_DUMP (Tree, "Tree after Simplification");
 
-    CreateLaTeXDumpFile ("dump.tex", Tree, DiffTree);
+    bool simplified2 = SimplifyUntilStable(DiffTree, MAX_LOOP_SIMPLE);
+    printf("DiffTree simplified: %s\n", simplified2 ? "YES" : "NO");
+    QUICK_DUMP (DiffTree, "DiffTree after Simplification");
+
+    printf("\n=== CREATING STEP-BY-STEP DUMP ===\n");
+
+    // Также создаем дамп после упрощения
+    bool simplified = SimplifyUntilStable(DiffTree, MAX_LOOP_SIMPLE);
+
+    CreateFullLatexDump("full_process.tex", Tree, DiffTree, simplified2, MAX_LOOP_SIMPLE);
+
+    Create_log_file (Tree, "tree_dump.dot", DUMP_NORMAL, NULL);
 
     system ("dot -V");
     Close_html_file ();

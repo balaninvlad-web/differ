@@ -13,6 +13,7 @@
 #define LOADING_BASE_DUMP(tree, buf, pos, reason, progress, buffer_start) Create_dump_files(tree, __FILE__, __func__, __LINE__, reason, DUMP_LOAD, buf, pos, progress)
 
 const int MAX_STR_SIZE = 1000;
+const int MAX_LOOP_SIMPLE = 40;
 const int MAX_VARIABLES = 10;
 const int MAX_COMMAND_SIZE = 7;
 
@@ -113,6 +114,8 @@ enum NameVariable
     ARGX = 1,
     ARGY = 2,
     ARGZ = 3,
+    ARGA = 4,
+    ARGB = 5,
 };
 
 struct Variable_t
