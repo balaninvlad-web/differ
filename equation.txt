@@ -1,0 +1,1 @@
+exp(sin(2*x^3+5))*ln(cos(3*x^2-4)^2)+tan(exp(x^2))/(x^5-7)+(sin(exp(x)))^(x+2)+exp(ln(x+1)/2)$

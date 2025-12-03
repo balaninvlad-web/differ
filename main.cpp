@@ -8,18 +8,22 @@ int main (int argc, char* argv[])
     Tree_t* Tree = NULL;
     TreeCtor (&Tree);
 
-    const char* input_filename = NULL;
+    const char* filename = NULL;
 
-    if (argc > 1)
+    LatexDumpState latex_dump = {};
+    CtorLatexDump (&latex_dump, "detailed_process.tex");
+
+    if (argc  > 1)
     {
-        input_filename = argv[1];
-        printf ("Loading tree from file: %s\n", input_filename);
+        filename = argv[1];
+        printf ("Loading tree from file: %s\n", filename);
 
-        TreeErr_t load_result = LoadDatabase (Tree, input_filename);
+        TreeErr_t load_result = LoadMathExpressionFromFile (Tree, filename);
+
         if (load_result != NOERORR)
         {
-            printf ("Failed to load from %s, creating default tree...\n", input_filename);
-            CreateDefaultTree (Tree);
+            printf ("Failed to load from %s, creating default tree...\n", filename);
+            //CreateDefaultTree (Tree);
         }
     }
     else
@@ -29,19 +33,20 @@ int main (int argc, char* argv[])
     }
 
     QUICK_DUMP (Tree, "check tree after make tree nods");
+    AddLatexStep (&latex_dump, "Исходное выражение", Tree);
 
     printf ("Tree structure: ");
     PrintNode (Tree->root);
     printf ("\n");
 
-    double result = EvaluateTreeAdvanced(Tree);
+    double result = EvaluateTreeAdvanced (Tree);
     printf ("Result: %f\n", result);
 
     printf("\n=== DIFFERENTIATION ===\n");
     Tree_t* DiffTree = NULL;
     TreeCtor (&DiffTree);
 
-    DiffTree->root = DifferentiateNode (Tree, Tree->root, 'A');
+    DiffTree->root = DifferentiateNode (Tree, Tree->root, 'x');
 
     printf ("Derivative tree: ");
     PrintNode (DiffTree->root);
@@ -49,21 +54,20 @@ int main (int argc, char* argv[])
 
     QUICK_DUMP (Tree, "Original tree");
     QUICK_DUMP (DiffTree, "Derivative tree is ready");
+    AddLatexStep (&latex_dump, "Результат дифференцирования", DiffTree);
 
-    bool simplified1 = SimplifyUntilStable(Tree, MAX_LOOP_SIMPLE);
+    bool simplified1 = SimplifyUntilStable (Tree, MAX_LOOP_SIMPLE, &latex_dump);
     printf("Tree simplified: %s\n", simplified1 ? "YES" : "NO");
     QUICK_DUMP (Tree, "Tree after Simplification");
+    AddLatexStep (&latex_dump, "Результат упрощения исходного выражения", Tree);
 
-    bool simplified2 = SimplifyUntilStable(DiffTree, MAX_LOOP_SIMPLE);
+
+    bool simplified2 = SimplifyUntilStable (DiffTree, MAX_LOOP_SIMPLE, &latex_dump);
     printf("DiffTree simplified: %s\n", simplified2 ? "YES" : "NO");
     QUICK_DUMP (DiffTree, "DiffTree after Simplification");
+    AddLatexStep (&latex_dump, "Результат упрощения производной исходного выражения", DiffTree);
 
     printf("\n=== CREATING STEP-BY-STEP DUMP ===\n");
-
-    // Также создаем дамп после упрощения
-    bool simplified = SimplifyUntilStable(DiffTree, MAX_LOOP_SIMPLE);
-
-    CreateFullLatexDump("full_process.tex", Tree, DiffTree, simplified2, MAX_LOOP_SIMPLE);
 
     Create_log_file (Tree, "tree_dump.dot", DUMP_NORMAL, NULL);
 
@@ -71,4 +75,5 @@ int main (int argc, char* argv[])
     Close_html_file ();
     TreeDtor (Tree);
     TreeDtor (DiffTree);
+    DtorLatexDump (&latex_dump);
 }

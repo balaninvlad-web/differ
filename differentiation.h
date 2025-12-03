@@ -16,6 +16,7 @@
 #define COS_(var1)          CreateOperatorNode(tree, COS, var1, NULL)
 #define LN_(var1)           CreateOperatorNode(tree, LN, var1, NULL)
 #define TAN_(var1)          CreateOperatorNode(tree, TAN, var1, NULL)
+#define EXP_(var1)          CreateOperatorNode(tree, EXP, var1, NULL)
 #define NUM_VALUE(x) ((union NodeValue){.number = (x)})
 #define VAR_VALUE(x) ((union NodeValue){.variable_code = (x)})
 #define OP_VALUE(x)  ((union NodeValue){.operator_type = (x)})

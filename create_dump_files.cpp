@@ -177,13 +177,13 @@ void Create_load_arrows(Tree_t* tree, FILE* dot_file, Node_t* node)
 
     if (node->right)
     {
-        fprintf (dot_file, "    node%p -> node%p [color=\"#adebff\", penwidth=3, label=\"LEFT\", fontcolor=\"#adebff\", fontsize=13, arrowsize=0.8, penwidth=1, weight=3];\n",
+        fprintf (dot_file, "    node%p -> node%p [color=\"#ffadb1\", penwidth=3, label=\"RIGHT\", fontcolor=\"#adebff\", fontsize=13, arrowsize=0.8, penwidth=1, weight=3];\n",
                 (void*)node, (void*)node->right);
     }
 
     if (node->left)
     {
-        fprintf (dot_file, "    node%p -> node%p [color=\"#ffadb1\", penwidth=3, label=\"RIGHT\"fontcolor=\"#ffadb1\", fontsize=13, arrowsize=0.8, penwidth=2, weight=3];\n",
+        fprintf (dot_file, "    node%p -> node%p [color=\"#adebff\", penwidth=3, label=\"LEFT\"fontcolor=\"#ffadb1\", fontsize=13, arrowsize=0.8, penwidth=2, weight=3];\n",
                 (void*)node, (void*)node->left);
     }
 }
@@ -219,10 +219,10 @@ void Create_graph_node (Tree_t* tree, FILE* dot_file, Node_t* node)
     switch (node->type)
     {
         case OPERATORTYPE:
-            snprintf(value_str, sizeof(value_str), "%s", GetOperatorName(node->value.operator_type));
+            snprintf(value_str, sizeof(value_str), "%s", GetOperatorName (node->value.operator_type));
             break;
         case VARIABLETYPE:
-            snprintf(value_str, sizeof(value_str), "%s", GetVariableName(node->value.variable_code));
+            snprintf(value_str, sizeof(value_str), "%s", GetVariableName (node->value.variable_code));
             break;
         case NUMBERTYPE:
             snprintf(value_str, sizeof(value_str), "%d", node->value.number);
@@ -265,13 +265,13 @@ void Make_arrow (Tree_t* tree, FILE* dot_file, Node_t* node)
 
     if (node->right)
     {
-        fprintf (dot_file, "    node%p -> node%p [color=\"#adebff\", penwidth=3, label=\"LEFT\", fontcolor=\"#adebff\", fontsize=13, arrowsize=0.8, penwidth=1, weight=3];\n",
+        fprintf (dot_file, "    node%p -> node%p [color=\"#ffadb1\", penwidth=3, label=\"RIGHT\", fontcolor=\"#adebff\", fontsize=13, arrowsize=0.8, penwidth=1, weight=3];\n",
                 (void*)node, (void*)node->right);
     }
 
     if (node->left)
     {
-        fprintf (dot_file, "    node%p -> node%p [color=\"#ffadb1\", penwidth=3, label=\"RIGHT\"fontcolor=\"#ffadb1\", fontsize=13, arrowsize=0.8, penwidth=2, weight=3];\n",
+        fprintf (dot_file, "    node%p -> node%p [color=\"#adebff\", penwidth=3, label=\"LEFT\"fontcolor=\"#ffadb1\", fontsize=13, arrowsize=0.8, penwidth=2, weight=3];\n",
                 (void*)node, (void*)node->left);
     }
 
@@ -292,10 +292,8 @@ void Create_picture (void)
 
     #ifdef DEBUG
         printf ("dot -Tsvg tree_dump.dot -o imagesDump/tree_dump%d.svg", image_counter);
+        printf ("Graph generated: tree_dump%d.svg\n", image_counter);
     #endif
-
-    printf ("Graph generated: tree_dump%d.svg\n", image_counter);
-
     image_counter++;
 }
 
@@ -359,7 +357,7 @@ void Create_dump_files (Tree_t* tree, const char* file, const char* func, int li
         printf ("DEBUG: Creating DOT file: %s\n", dot_filename);
     #endif
 
-    Create_log_file(tree, dot_filename, dump_type, progress);
+    Create_log_file (tree, dot_filename, dump_type, progress);
 
     #ifdef DEBUG
         printf ("Create_dump_files COMPLETED\n");
@@ -382,7 +380,7 @@ void Create_html_file (Tree_t* tree, int dump_counter, const char* graph_filenam
     fprintf (html_file, "       <h2>Dump %d Called because: <font color=white>%s</font></h2>\n\n", dump_counter, formatted_reason);
 
     va_list args;
-    va_start(args, formatted_reason);
+    va_start (args, formatted_reason);
 
     int dump_type = DUMP_NORMAL;
     const char* buffer = NULL;
@@ -504,26 +502,26 @@ void PrintBuffer (FILE* html_file, const char* buffer_start, size_t position)
 
     size_t notgetted_len = show_len - getted_len;
 
-    fprintf(html_file, "\t<span class='getted-text'>");
-    EscapeHtml(html_file, buffer_start, getted_len);
-    fprintf(html_file, "</span>");
+    fprintf (html_file, "\t<span class='getted-text'>");
+    EscapeHtml (html_file, buffer_start, getted_len);
+    fprintf (html_file, "</span>");
 
-    fprintf(html_file, "\t<span class='cursor'>|</span>");
+    fprintf (html_file, "\t<span class='cursor'>|</span>");
 
-    fprintf(html_file, "\t<span class='notgetted-text'>");
-    EscapeHtml(html_file, buffer_start + getted_len, notgetted_len);
-    fprintf(html_file, "</span>");
+    fprintf (html_file, "\t<span class='notgetted-text'>");
+    EscapeHtml (html_file, buffer_start + getted_len, notgetted_len);
+    fprintf (html_file, "</span>");
 
-    fprintf(html_file, "\t</div>\n");
+    fprintf (html_file, "\t</div>\n");
 
     if (show_len > 0)
     {
         int percent = (int)((position * 100) / show_len);
-        fprintf(html_file, "\t<div class='buffer-stats'>Position: %u/%u (%d%%)</div>\n",
-               (unsigned)position, (unsigned)show_len, percent);
+        fprintf (html_file, "\t<div class='buffer-stats'>Position: %u/%u (%d%%)</div>\n",
+                (unsigned)position, (unsigned)show_len, percent);
     }
 
-    fprintf(html_file, "\t</div>\n");
+    fprintf (html_file, "\t</div>\n");
 }
 
 void Close_html_file(void)
@@ -532,10 +530,10 @@ void Close_html_file(void)
 
     if (html_file != NULL)
     {
-        fprintf(html_file, "</body>\n</html>\n");
-        fclose(html_file);
+        fprintf (html_file, "</body>\n</html>\n");
+        fclose (html_file);
         html_file = NULL;
-        printf("HTML file closed successfully\n");
+        printf ("HTML file closed successfully\n");
     }
 }
 
@@ -563,6 +561,7 @@ const char* GetOperatorName (int value)
         case COS: return "COS";
         case TAN: return "TAN";
         case LN:  return "LN";
+        case EXP: return "EXP";
         default:  return "UNKNOWN_OP";
     }
 }
@@ -576,11 +575,11 @@ const char* GetVariableName (int value)
         case ARGZ: return "z";
         case ARGA: return "A";
         case ARGB: return "B";
-        default:   return "UNKNOWN_VAR";
+        default:   return "A";
     }
 }
 
-void EscapeHtml(FILE* html_file, const char* text, size_t len)
+void EscapeHtml (FILE* html_file, const char* text, size_t len)
 {
     if (text == NULL) return;
 
@@ -588,12 +587,12 @@ void EscapeHtml(FILE* html_file, const char* text, size_t len)
     {
         switch (text[i])
         {
-            case '<': fputs("&lt;", html_file); break;
-            case '>': fputs("&gt;", html_file); break;
-            case '&': fputs("&amp;", html_file); break;
-            case '"': fputs("&quot;", html_file); break;
-            case '\'': fputs("&#39;", html_file); break;
-            default: fputc(text[i], html_file); break;
+            case '<': fputs ("&lt;", html_file); break;
+            case '>': fputs ("&gt;", html_file); break;
+            case '&': fputs ("&amp;", html_file); break;
+            case '"': fputs ("&quot;", html_file); break;
+            case '\'': fputs ("&#39;", html_file); break;
+            default: fputc (text[i], html_file); break;
         }
     }
 }

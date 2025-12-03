@@ -2,7 +2,7 @@
 
 static StructCmd command_table[] =
 {
-     {"+"    , {.operator_type = ADD}, OPERATORTYPE},
+    {"+"    , {.operator_type = ADD}, OPERATORTYPE},
     {"-"    , {.operator_type = SUB}, OPERATORTYPE},
     {"*"    , {.operator_type = MUL}, OPERATORTYPE},
     {"/"    , {.operator_type = DIV}, OPERATORTYPE},
@@ -11,6 +11,7 @@ static StructCmd command_table[] =
     {"cos"  , {.operator_type = COS}, OPERATORTYPE},
     {"tan"  , {.operator_type = TAN}, OPERATORTYPE},
     {"ln"   , {.operator_type = LN},  OPERATORTYPE},
+    {"e"    , {.operator_type = EXP}, OPERATORTYPE},
 
     // Переменные
     {"x"    , {.variable_code = ARGX}, VARIABLETYPE},
@@ -26,6 +27,10 @@ const int COMMANDS_TABLE_SIZE = sizeof(command_table) / sizeof(StructCmd);
 
 void DetermineType (const char* data, int* type, union NodeValue* value)
 {
+    #ifdef DEBUG
+        printf("DEBUG: DetermineType called with: '%s'\n", data);
+    #endif
+
     for (int i = 0; i < MAX_COMMAND_SIZE && command_table[i].name != NULL; i++)
     {
         if (strcmp (data, command_table[i].name) == 0)
@@ -34,14 +39,14 @@ void DetermineType (const char* data, int* type, union NodeValue* value)
             *value = command_table[i].value;
 
             #ifdef DEBUG
-                printf("DEBUG: Found in command table: '%s' -> type=%d\n",
-                       data, *type);
+                printf("DEBUG: Found in command table: '%s' -> type=%d, operator_type=%d\n",
+                       data, *type, value->operator_type);
             #endif
             return;
         }
     }
 
-    if (isdigit((unsigned char)data[0]) || (data[0] == '-' && isdigit((unsigned char)data[1]))) // TODO: CheckIfNumber
+    if (isdigit((unsigned char)data[0]) || (data[0] == '-' && isdigit((unsigned char)data[1])))
     {
         *type = NUMBERTYPE;
         value->number = atoi(data);

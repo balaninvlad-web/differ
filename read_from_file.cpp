@@ -37,7 +37,7 @@ const char* ReadCommand(const char* current, int* pos_in_buffer, int* type, unio
         printf ("DEBUG: ReadCommand type: '%d'\n", *type);
     #endif
 
-    DetermineType(data, type, value);
+    DetermineType (data, type, value);
 
     #ifdef DEBUG
         printf ("DEBUG: ReadCommand result: type=%d", *type);
@@ -123,7 +123,18 @@ Node_t* LoadTreeFromFile(Tree_t* tree, const char** buffer, int* pos_in_buffer,
             if (is_unary_operator)
             {
                 node->left = LoadTreeFromFile (tree, &current, pos_in_buffer, progress, buffer_start, current_level + 1);
-                node->right = NULL;
+                if (is_unary_operator)
+                {
+                    node->left = LoadTreeFromFile (tree, &current, pos_in_buffer, progress, buffer_start, current_level + 1);
+
+                    // ÏÐÎÏÓÑÒÈÒÜ ÏÐÀÂÎÃÎ ÐÅÁÅÍÊÀ (nil) äëÿ óíàðíûõ îïåðàòîðîâ
+                    current = SkipSpaces(current, pos_in_buffer);
+                    if (strncmp(current, "nil", 3) == 0) {
+                        current += 3;
+                        (*pos_in_buffer) += 3;
+                    }
+                    node->right = NULL;
+                }
             }
             else
             {

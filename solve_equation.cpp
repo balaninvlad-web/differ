@@ -92,8 +92,6 @@ double EvaluateNodeAdvanced (Node_t* node, Variable_t* variables, int var_count)
         {
             char var_name = GetterNameVariable (node->value.variable_code);
 
-            // TODO: GetVariableValue
-
             return GetVariableValue (var_name, variables, var_count);
         }
         case OPERATORTYPE:
@@ -127,6 +125,17 @@ double EvaluateOperator (Node_t* node, Variable_t* variables, int var_count)
         case SIN: return sin (left_val);
         case COS: return cos (left_val);
         case TAN: return tan (left_val);
+        case EXP:
+        {
+            if (left_val > 700.0)
+            {
+                printf("WARNING: exp(%g) would overflow, returning INF\n", left_val);
+                return INFINITY;
+            }
+            else if (left_val < -700.0)
+                return 0.0;
+            return exp(left_val);
+        }
         case LN:
         {
             if (left_val <= 0)
@@ -149,7 +158,7 @@ char GetterNameVariable (int variable_code)
         case ARGZ: return 'z';
         case ARGA: return 'A';
         case ARGB: return 'B';
-        default  : return 'A';
+        default  : return 'x';
     }
 }
 
@@ -161,10 +170,10 @@ double GetVariableValue (char var_name, Variable_t* variables, int var_count)
             return variables[i].value;
     }
     printf ("Variable '%c' not found!\n", var_name);
-    return NAN;
+    return ARGX;
 }
 
-int CheckVariableExists(int var_code, int* variables, int count)
+int CheckVariableExists (int var_code, int* variables, int count)
 {
     for (int i = 0; i < count; i++)
     {

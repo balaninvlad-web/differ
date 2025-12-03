@@ -52,7 +52,6 @@ struct StructCmd
 
 //const int MAX_COUNT_COMMAND = ;//TODO ykazat skolko
 
-
 struct LoadNodeInfo
 {
     Node_t* node;
@@ -106,7 +105,8 @@ enum TypeValue
     SIN     = 6,
     COS     = 7,
     TAN     = 8,
-    LN      = 9
+    LN      = 9,
+    EXP     = 10
 };
 
 enum NameVariable
@@ -140,16 +140,15 @@ Node_t* TreeInsertNode (Tree_t* tree, int type, union NodeValue value);
 TreeErr_t DeleteSubtree (Tree_t* tree, Node_t** node);
 
 
-Node_t* LoadTreeFromFile(Tree_t* tree, const char** buffer, int* pos_in_buffer,
-                         LoadProgress* progress, const char* buffer_start, int current_level);
-TreeErr_t LoadDatabase (Tree_t* tree, const char* filename);
+TreeErr_t LoadMathExpressionFromFile (Tree_t* tree, const char* filename);
+TreeErr_t LoadMathExpression (Tree_t* tree, const char* expression);
 
 const char* SkipSpaces (const char* str, int* pos_in_buffer);
-long getFileSize(FILE* file);
+long getFileSize (FILE* file);
 void DetermineType (const char* data, int* type, union NodeValue* value);
 const char* ReadCommand (const char* current, int* pos_in_buffer, int* type, union NodeValue* value);
 
-void CreateDefaultTree(Tree_t* tree);
+void CreateDefaultTree (Tree_t* tree);
 
 void CtorLoadProgress (LoadProgress* progress);
 void AddNodeToLoadProgress (LoadProgress* progress, Node_t* node, int level);
@@ -165,7 +164,7 @@ int CheckVariableExists (int var_code, int* variables, int count);
 
 struct Node_t* CopySubtree (struct Tree_t* tree, struct Node_t* node);
 Node_t* DifferentiateNode (Tree_t* tree, Node_t* node, char variable);
-struct Node_t* DifferentiateOperator(struct Tree_t* tree, struct Node_t* node, char variable);
+struct Node_t* DifferentiateOperator (struct Tree_t* tree, struct Node_t* node, char variable);
 struct Node_t* NewNode (struct Tree_t* tree, int type, union NodeValue value, struct Node_t* left, struct Node_t* right);
 
 Node_t* CreateNumberNode (Tree_t* tree, int number);

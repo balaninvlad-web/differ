@@ -62,25 +62,26 @@ Node_t* DifferentiateOperator (Tree_t* tree, Node_t* node, char variable)
         case ADD:
         {
             result = ADD_(dL, dR);
-            LatexDumpDiffStep(tree, "Правило суммы: (u+v)' = u' + v'");
             break;
         }
         case SUB:
         {
             result = SUB_(dL, dR);
-            LatexDumpDiffStep(tree, "Правило разности: (u-v)' = u' - v'");
             break;
         }
         case MUL:
         {
-            result = ADD_(MUL_(dL, cR), MUL_(cL, dR));
-            LatexDumpDiffStep(tree, "Правило произведения: (uv)' = u'v + uv'");
+            if (node->left->type == NUMBERTYPE)
+                return MUL_(cL, dR);
+            else if (node->right->type == NUMBERTYPE)
+                return MUL_(dL, cR);
+            else
+                return ADD_(MUL_(dL, cR), MUL_(cL, dR));
             break;
         }
         case DIV:
         {
             result = DIV_(SUB_(MUL_(dL, cR), MUL_(cL, dR)), POW_(cR, NUM_(2)));
-            LatexDumpDiffStep(tree, "Правило частного: (u/v)' = (u'v - uv')/v²");
             break;
         }
         case POW:
@@ -88,12 +89,10 @@ Node_t* DifferentiateOperator (Tree_t* tree, Node_t* node, char variable)
             if (node->right->type == NUMBERTYPE)
             {
                 result = MUL_(MUL_(NUM_(node->right->value.number), POW_(cL, NUM_(node->right->value.number - 1))), dL);
-                LatexDumpDiffStep(tree, "Степенное правило: (uⁿ)' = n·uⁿ⁻¹·u'");
             }
             else if (node->left->type == NUMBERTYPE)
             {
                 result = MUL_(MUL_(POW_(cL, cR), LN_(cL)), dR);
-                LatexDumpDiffStep(tree, "Производная экспоненты: (aᵘ)' = aᵘ·ln(a)·u'");
             }
             else
             {
@@ -101,32 +100,32 @@ Node_t* DifferentiateOperator (Tree_t* tree, Node_t* node, char variable)
                 Node_t* term1 = MUL_(dR, LN_(cL));
                 Node_t* term2 = MUL_(cR, DIV_(dL, cL));
                 result = MUL_(y, ADD_(term1, term2));
-                LatexDumpDiffStep(tree, "Общее степенное правило");
             }
             break;
         }
         case SIN:
         {
             result = MUL_(COS_(cL), dL);
-            LatexDumpDiffStep(tree, "Производная синуса: (sin u)' = cos u · u'");
             break;
         }
         case COS:
         {
             result = MUL_(MUL_(NUM_(-1), SIN_(cL)), dL);
-            LatexDumpDiffStep(tree, "Производная косинуса: (cos u)' = -sin u · u'");
             break;
         }
         case TAN:
         {
             result = MUL_(DIV_(NUM_(1), POW_(COS_(cL), NUM_(2))), dL);
-            LatexDumpDiffStep(tree, "Производная тангенса: (tan u)' = u'/cos² u");
             break;
         }
         case LN:
         {
             result = DIV_( dL, cL);
-            LatexDumpDiffStep(tree, "Производная логарифма: (ln u)' = u'/u");
+            break;
+        }
+        case EXP:
+        {
+            result = MUL_(EXP_(cL), dL);
             break;
         }
         default:
@@ -145,3 +144,5 @@ Node_t* NewNode (Tree_t* tree, int type, union NodeValue value, Node_t* left, No
     new_node->right = right;
     return new_node;
 }
+
+//Node_t* DifferentiateTreeN

@@ -48,33 +48,138 @@ const char* funny_phrases[] = {
     "А ну вроде норм, ща подгоним:"
 };
 
-const int PHRASES_COUNT = sizeof(funny_phrases) / sizeof(funny_phrases[0]);
+const int PHRASES_COUNT = sizeof (funny_phrases) / sizeof (funny_phrases[0]);
 
 static int latex_call_count = 0;
-const char* get_funny_phrase()
+
+const char* get_funny_phrase ()
 {
     return funny_phrases[latex_call_count++ % PHRASES_COUNT];
 }
 
-// Глобальная переменная для отслеживания текущего файла LaTeX
-static FILE* current_latex_file = NULL;
-static int step_counter = 1;
+void CtorLatexDump (LatexDumpState* state, const char* filename)
+{
+    if (!state || !filename)
+    {
+        printf ("ERORR: invalid parametrs in CtorLatexDump\n");
+        return;
+    }
 
-void NodeToLatexString(Node_t* node, char* buffer, int* pos, int buffer_size)
+    state->filename = filename;
+    state->file = fopen (filename, "w");
+    if (!state->file)
+    {
+        printf("ERROR: Cannot create LaTeX file: %s\n", filename);
+        return;
+    }
+
+    state->step_counter = 1;
+    state->current_funny_index = 0;
+
+    state->funny_phrases = funny_phrases;
+    state->funny_phrases_count = PHRASES_COUNT;
+
+    StartLatexDump (state->file);
+
+    fprintf (state->file, "\\section*{Пошаговый процесс расчленения и анального насилия}\n");
+    fprintf (state->file, "\\textbf{Дата:} %s\\\\\n", __DATE__);
+    fprintf (state->file, "\\vspace{0.5cm}\n\n");
+
+    printf ("LaTeX dump initialized: %s\n", filename);
+}
+
+void AddLatexStep (LatexDumpState* state, const char* description, Tree_t* tree)
+{
+    if (!state || !state->file || !description || !tree || !tree->root)
+    {
+        printf ("WARNING: Cannot add LaTeX step - invalid parameters\n");
+        return;
+    }
+
+    const char* funny_comment = "";
+    if (state->funny_phrases && state->funny_phrases_count > 0)
+    {
+        funny_comment = state->funny_phrases[state->current_funny_index % state->funny_phrases_count];
+        state->current_funny_index++;
+    }
+
+    fprintf (state->file, "\\textit{%s}\\\\\n", funny_comment);
+    fprintf (state->file, "\\begin{multline*}\n");
+
+    print_tree_latex (state->file, tree->root);
+
+    fprintf (state->file, "\n\\end{multline*}\n\n");
+
+    state->step_counter++;
+
+    //printf ("LaTeX dump simplify step (two params): %s\n", description);
+
+    //printf ("Added LaTeX step %d: %s\n", state->step_counter - 1, description);
+}
+
+void print_tree_latex (FILE* file, Node_t* node)
+{
+    if (!file || !node) return;
+
+    char buffer[MAX_STR_SIZE] = {};
+    int pos = 0;
+
+    NodeToLatexString (node, buffer, &pos, sizeof(buffer));
+
+    fprintf(file, "%s", buffer);
+}
+
+void DtorLatexDump (LatexDumpState* state)
+{
+    if (!state || !state->file)
+    {
+        printf("WARNING: Cannot close LaTeX dump - invalid state\n");
+        return;
+    }
+
+    fprintf (state->file, "\\section*{Заключение}\n");
+    fprintf (state->file, "Процесс дифференцирования и упрощения нихуя не интересно если ты это читаешь то ты инцел сто проц.\\\\\n");
+    fprintf (state->file, "Всего выполнено шагов: %d(ДОХУИЩА)\\\\\n", state->step_counter - 1);
+    fprintf (state->file, "\\vspace{0.5cm}\n\n");
+
+    EndLatexDump (state->file);
+    fclose (state->file);
+    state->file = NULL;
+
+    printf ("LaTeX document completed. Total steps: %d\n", state->step_counter - 1);
+
+    printf ("Compiling LaTeX to PDF...\n");
+    char command[MAX_STR_SIZE] = {};
+    snprintf (command, sizeof(command), "pdflatex -interaction=nonstopmode \"%s\"", state->filename);
+
+    int result = system(command);
+
+    if (result == 0)
+        printf ("SUCCESS: PDF generated: %s.pdf\n", state->filename);
+    else
+        printf ("ERROR: Failed to compile LaTeX document\n");
+}
+
+void NodeToLatexString (Node_t* node, char* buffer, int* pos, int buffer_size)
 {
     if (node == NULL || *pos >= buffer_size - 1)
         return;
 
+    if (*pos > 100 && (*pos % 80) < 10)
+    {
+        *pos += snprintf (buffer + *pos, buffer_size - *pos, "\\\\\n");
+    }
+
     switch (node->type)
     {
         case NUMBERTYPE:
-            *pos += snprintf(buffer + *pos, buffer_size - *pos, "%d", node->value.number);
+            *pos += snprintf (buffer + *pos, buffer_size - *pos, "%d", node->value.number);
             break;
 
         case VARIABLETYPE:
         {
-            char var_name = GetterNameVariable(node->value.variable_code);
-            *pos += snprintf(buffer + *pos, buffer_size - *pos, "%c", var_name);
+            char var_name = GetterNameVariable (node->value.variable_code);
+            *pos += snprintf (buffer + *pos, buffer_size - *pos, "%c", var_name);
             break;
         }
 
@@ -82,319 +187,313 @@ void NodeToLatexString(Node_t* node, char* buffer, int* pos, int buffer_size)
             switch (node->value.operator_type)
             {
                 case ADD:
-                    NodeToLatexString(node->left, buffer, pos, buffer_size);
-                    *pos += snprintf(buffer + *pos, buffer_size - *pos, " + ");
-                    NodeToLatexString(node->right, buffer, pos, buffer_size);
+                    NodeToLatexString (node->left, buffer, pos, buffer_size);
+                    *pos += snprintf (buffer + *pos, buffer_size - *pos, " + ");
+                    NodeToLatexString (node->right, buffer, pos, buffer_size);
                     break;
 
                 case SUB:
-                    if (node->left == NULL && node->right != NULL)
+                    if (node->left)
                     {
-                        *pos += snprintf(buffer + *pos, buffer_size - *pos, "-");
-                        if (node->right->type == OPERATORTYPE &&
-                           (node->right->value.operator_type == ADD ||
-                            node->right->value.operator_type == SUB))
-                        {
-                            *pos += snprintf(buffer + *pos, buffer_size - *pos, "(");
-                            NodeToLatexString(node->right, buffer, pos, buffer_size);
-                            *pos += snprintf(buffer + *pos, buffer_size - *pos, ")");
-                        }
-                        else
-                        {
-                            NodeToLatexString(node->right, buffer, pos, buffer_size);
-                        }
+                        NodeToLatexString (node->left, buffer, pos, buffer_size);
+                        *pos += snprintf (buffer + *pos, buffer_size - *pos, " - ");
+                        NodeToLatexString (node->right, buffer, pos, buffer_size);
                     }
                     else
                     {
-                        NodeToLatexString(node->left, buffer, pos, buffer_size);
-                        *pos += snprintf(buffer + *pos, buffer_size - *pos, " - ");
-                        NodeToLatexString(node->right, buffer, pos, buffer_size);
+                        *pos += snprintf (buffer + *pos, buffer_size - *pos, "-");
+                        NodeToLatexString (node->right, buffer, pos, buffer_size);
                     }
                     break;
-
                 case MUL:
-                    if (node->left && node->left->type == NUMBERTYPE && node->left->value.number == -1)
-                    {
-                        *pos += snprintf(buffer + *pos, buffer_size - *pos, "-");
-                        NodeToLatexString(node->right, buffer, pos, buffer_size);
-                    }
-                    else if (node->right && node->right->type == NUMBERTYPE && node->right->value.number == -1)
-                    {
-                        *pos += snprintf(buffer + *pos, buffer_size - *pos, "-");
-                        NodeToLatexString(node->left, buffer, pos, buffer_size);
-                    }
-                    else
-                    {
-                        if (node->left && node->left->type == NUMBERTYPE &&
-                            node->right && node->right->type == VARIABLETYPE)
-                        {
-                            NodeToLatexString(node->left, buffer, pos, buffer_size);
-                            NodeToLatexString(node->right, buffer, pos, buffer_size);
-                        }
-                        else if (node->left && node->left->type == VARIABLETYPE &&
-                                 node->right && node->right->type == NUMBERTYPE)
-                        {
-                            NodeToLatexString(node->right, buffer, pos, buffer_size);
-                            NodeToLatexString(node->left, buffer, pos, buffer_size);
-                        }
-                        else
-                        {
-                            NodeToLatexString(node->left, buffer, pos, buffer_size);
-                            *pos += snprintf(buffer + *pos, buffer_size - *pos, " \\cdot ");
-                            NodeToLatexString(node->right, buffer, pos, buffer_size);
-                        }
-                    }
+                    NodeToLatexString (node->left, buffer, pos, buffer_size);
+                    *pos += snprintf (buffer + *pos, buffer_size - *pos, " \\cdot ");
+                    NodeToLatexString (node->right, buffer, pos, buffer_size);
                     break;
 
                 case DIV:
-                    *pos += snprintf(buffer + *pos, buffer_size - *pos, "\\frac{");
-                    NodeToLatexString(node->left, buffer, pos, buffer_size);
-                    *pos += snprintf(buffer + *pos, buffer_size - *pos, "}{");
-                    NodeToLatexString(node->right, buffer, pos, buffer_size);
-                    *pos += snprintf(buffer + *pos, buffer_size - *pos, "}");
+                    *pos += snprintf (buffer + *pos, buffer_size - *pos, "\\frac{");
+                    NodeToLatexString (node->left, buffer, pos, buffer_size);
+                    *pos += snprintf (buffer + *pos, buffer_size - *pos, "}{");
+                    NodeToLatexString (node->right, buffer, pos, buffer_size);
+                    *pos += snprintf (buffer + *pos, buffer_size - *pos, "}");
                     break;
 
                 case POW:
-                    NodeToLatexString(node->left, buffer, pos, buffer_size);
-                    *pos += snprintf(buffer + *pos, buffer_size - *pos, "^{");
-                    NodeToLatexString(node->right, buffer, pos, buffer_size);
-                    *pos += snprintf(buffer + *pos, buffer_size - *pos, "}");
+                    *pos += snprintf (buffer + *pos, buffer_size - *pos, "{");
+                    NodeToLatexString (node->left, buffer, pos, buffer_size);
+                    *pos += snprintf (buffer + *pos, buffer_size - *pos, "}^{");
+                    NodeToLatexString (node->right, buffer, pos, buffer_size);
+                    *pos += snprintf (buffer + *pos, buffer_size - *pos, "}");
                     break;
 
                 case SIN:
-                    *pos += snprintf(buffer + *pos, buffer_size - *pos, "\\sin(");
-                    NodeToLatexString(node->left, buffer, pos, buffer_size);
-                    *pos += snprintf(buffer + *pos, buffer_size - *pos, ")");
+                    *pos += snprintf (buffer + *pos, buffer_size - *pos, "\\sin(");
+                    NodeToLatexString (node->left, buffer, pos, buffer_size);
+                    *pos += snprintf (buffer + *pos, buffer_size - *pos, ")");
                     break;
 
                 case COS:
-                    *pos += snprintf(buffer + *pos, buffer_size - *pos, "\\cos(");
-                    NodeToLatexString(node->left, buffer, pos, buffer_size);
-                    *pos += snprintf(buffer + *pos, buffer_size - *pos, ")");
+                    *pos += snprintf (buffer + *pos, buffer_size - *pos, "\\cos(");
+                    NodeToLatexString (node->left, buffer, pos, buffer_size);
+                    *pos += snprintf (buffer + *pos, buffer_size - *pos, ")");
                     break;
 
                 case TAN:
-                    *pos += snprintf(buffer + *pos, buffer_size - *pos, "\\tan(");
-                    NodeToLatexString(node->left, buffer, pos, buffer_size);
-                    *pos += snprintf(buffer + *pos, buffer_size - *pos, ")");
+                    *pos += snprintf (buffer + *pos, buffer_size - *pos, "\\tan(");
+                    NodeToLatexString (node->left, buffer, pos, buffer_size);
+                    *pos += snprintf (buffer + *pos, buffer_size - *pos, ")");
                     break;
 
                 case LN:
-                    *pos += snprintf(buffer + *pos, buffer_size - *pos, "\\ln(");
-                    NodeToLatexString(node->left, buffer, pos, buffer_size);
-                    *pos += snprintf(buffer + *pos, buffer_size - *pos, ")");
+                    *pos += snprintf (buffer + *pos, buffer_size - *pos, "\\ln(");
+                    NodeToLatexString (node->left, buffer, pos, buffer_size);
+                    *pos += snprintf (buffer + *pos, buffer_size - *pos, ")");
                     break;
-
+                case EXP:
+                    *pos += snprintf (buffer + *pos, buffer_size - *pos, "\\exp(");
+                    NodeToLatexString (node->left, buffer, pos, buffer_size);
+                    *pos += snprintf (buffer + *pos, buffer_size - *pos, ")");
                 default:
-                    *pos += snprintf(buffer + *pos, buffer_size - *pos, "?");
+                    *pos += snprintf (buffer + *pos, buffer_size - *pos, "?");
             }
             break;
 
         default:
-            *pos += snprintf(buffer + *pos, buffer_size - *pos, "?");
+            *pos += snprintf (buffer + *pos, buffer_size - *pos, "?");
     }
 }
 
-int StartLatexDump(const char* filename)
+int StartLatexDump (FILE* file)
 {
-    current_latex_file = fopen(filename, "w");
-    if (!current_latex_file)
-    {
-        printf("ERROR: Cannot create LaTeX file: %s\n", filename);
+    if (file == NULL)
         return -1;
-    }
 
-    step_counter = 1;
+    fprintf(file, "\\documentclass[12pt]{article}\n");
+    fprintf(file, "\\usepackage[utf8]{inputenc}\n");
+    fprintf(file, "\\usepackage[T2A]{fontenc}\n");
+    fprintf(file, "\\usepackage[russian]{babel}\n");
+    fprintf(file, "\\usepackage{amsmath}\n");
+    fprintf(file, "\\usepackage{geometry}\n");
+    fprintf(file, "\\geometry{a4paper, left=10mm, right=10mm, top=30mm, bottom=30mm}\n");
+    fprintf(file, "\\begin{document}\n\n");
 
-    fprintf(current_latex_file, "\\documentclass[12pt]{article}\n");
-    fprintf(current_latex_file, "\\usepackage[utf8]{inputenc}\n");
-    fprintf(current_latex_file, "\\usepackage{amsmath}\n");
-    fprintf(current_latex_file, "\\usepackage{geometry}\n");
-    fprintf(current_latex_file, "\\geometry{a4paper, left=20mm, right=20mm, top=20mm, bottom=20mm}\n");
-    fprintf(current_latex_file, "\\setlength{\\parindent}{0pt}\n");
-    fprintf(current_latex_file, "\\setlength{\\parskip}{1em}\n");
-    fprintf(current_latex_file, "\\begin{document}\n");
-
-    fprintf(current_latex_file, "\\section*{Великое Упрощение 2024}\n");
-    fprintf(current_latex_file, "\\large Дифференциатор 3000\\\\\n");
-    fprintf(current_latex_file, "\\small %s\\\\\n", __DATE__);
-    fprintf(current_latex_file, "\\vspace{0.5cm}\n\n");
-
+    fprintf(file, "\\section*{MATHANAL}\n\n");
     return 0;
 }
 
-int EndLatexDump()
+int EndLatexDump (FILE* file)
 {
-    if (!current_latex_file) return -1;
+    if (file == NULL)
+        return -1;
 
-    fprintf(current_latex_file, "\\section*{Заключение}\n");
-    fprintf(current_latex_file, "Процесс дифференцирования и упрощения завершен. ");
-    fprintf(current_latex_file, "Для улучшения результатов рекомендуется проверить структуру дерева и улучшить алгоритм упрощения.\\\\\n");
-
-    fprintf(current_latex_file, "\\vspace{0.5cm}\n");
-    fprintf(current_latex_file, "\\textbf{Всего шагов: %d}\n", step_counter - 1);
-
-    fprintf(current_latex_file, "\\end{document}\n");
-    fclose(current_latex_file);
-    current_latex_file = NULL;
-
+    fprintf(file, "\\end{document}\n");
     return 0;
 }
 
-void DumpExpressionStep(const char* title, Tree_t* tree, const char* comment)
+int DumpOriginalFunctionToFile (FILE* file, Tree_t* tree, double result_value)
 {
-    if (!current_latex_file || !tree) return;
+    if (file == NULL || tree == NULL)
+        return -1;
 
-    fprintf(current_latex_file, "\\subsection*{%s}\n", title);
-
-    if (comment && strlen(comment) > 0)
-    {
-        fprintf(current_latex_file, "\\textbf{%s}\\\\\n", comment);
-    }
-
-    char expression[MAX_LATEX_EXPRESSION_LENGTH] = {0};
+    char expression[MAX_LATEX_EXPRESSION_LENGTH] = {};
     int pos = 0;
-    NodeToLatexString(tree->root, expression, &pos, sizeof(expression));
+    NodeToLatexString (tree->root, expression, &pos, sizeof(expression));
 
-    fprintf(current_latex_file, "\\[ %s \\]\n\n", expression);
-    step_counter++;
-}
-
-void DumpDifferentiationStep(const char* rule_name, Tree_t* tree)
-{
-    if (!current_latex_file || !tree) return;
-
-    fprintf(current_latex_file, "\\subsubsection*{Шаг %d: Дифференцирование}\n", step_counter);
-    fprintf(current_latex_file, "\\textbf{Правило:} %s\\\\\n", rule_name);
-    fprintf(current_latex_file, "\\textbf{Комментарий:} %s\\\\\n", get_funny_phrase());
-
-    char expression[MAX_LATEX_EXPRESSION_LENGTH] = {0};
-    int pos = 0;
-    NodeToLatexString(tree->root, expression, &pos, sizeof(expression));
-
-    fprintf(current_latex_file, "\\[ %s \\]\n\n", expression);
-    step_counter++;
-}
-
-void DumpSimplificationStep(Tree_t* tree, const char* rule_applied)
-{
-    if (!current_latex_file || !tree) return;
-
-    fprintf(current_latex_file, "\\subsubsection*{Шаг %d: Упрощение}\n", step_counter);
-    fprintf(current_latex_file, "\\textbf{Применено:} %s\\\\\n", rule_applied);
-    fprintf(current_latex_file, "\\textbf{Комментарий:} %s\\\\\n", get_funny_phrase());
-
-    char expression[MAX_LATEX_EXPRESSION_LENGTH] = {0};
-    int pos = 0;
-    NodeToLatexString(tree->root, expression, &pos, sizeof(expression));
-
-    fprintf(current_latex_file, "\\[ %s \\]\n\n", expression);
-    step_counter++;
-}
-
-void DumpOriginalFunction(Tree_t* tree, double result_value)
-{
-    if (!current_latex_file || !tree) return;
-
-    fprintf(current_latex_file, "\\section*{Исходная функция}\n");
-
-    char expression[MAX_LATEX_EXPRESSION_LENGTH] = {0};
-    int pos = 0;
-    NodeToLatexString(tree->root, expression, &pos, sizeof(expression));
-
-    fprintf(current_latex_file, "Исходное выражение: \\[ %s \\]\n\n", expression);
+    fprintf (file, "\\subsection*{Original Expression}\n");
+    fprintf (file, "Expression: \\[ %s \\]\n\n", expression);
 
     if (!isnan(result_value))
     {
-        fprintf(current_latex_file, "Результат вычисления: \\[ %.6f \\]\n\n", result_value);
+        fprintf (file, "Evaluation result: \\[ %.6f \\]\n\n", result_value);
     }
     else
     {
-        fprintf(current_latex_file, "Результат вычисления: \\[ \\text{Требуются значения переменных} \\]\n\n");
+        fprintf (file, "Evaluation result: \\[ \\text{NaN (requires variable values)} \\]\n\n");
     }
+
+    return 0;
 }
 
-void DumpDerivativeResult(Tree_t* derivative_tree, double derivative_result, char variable)
+int DumpOptimizationStepToFile (FILE* file, const char* description, Tree_t* tree, double result_value)
 {
-    if (!current_latex_file || !derivative_tree) return;
+    if (file == NULL || description == NULL || tree == NULL)
+        return -1;
 
-    fprintf(current_latex_file, "\\section*{Результат дифференцирования}\n");
+    fprintf(file, "\\subsubsection*{Optimization Step}\n");
+    fprintf(file, "It is easy to see that %s:\n\n", description);
+
+    char expression[MAX_LATEX_EXPRESSION_LENGTH] = {0};
+    int pos = 0;
+    NodeToLatexString(tree->root, expression, &pos, sizeof(expression));
+
+    fprintf(file, "\\[ %s \\]\n\n", expression);
+
+    if (!isnan (result_value))
+    {
+        fprintf (file, "Result after simplification: \\[ %.6f \\]\n\n", result_value);
+    }
+    else
+    {
+        fprintf (file, "Result after simplification: \\[ \\text{NaN (requires variable values)} \\]\n\n");
+    }
+
+    fprintf (file, "\\vspace{0.5em}\n");
+
+    return 0;
+}
+
+int DumpDerivativeToFile (FILE* file, Tree_t* derivative_tree, double derivative_result, int derivative_order)
+{
+    if (file == NULL || derivative_tree == NULL)
+        return -1;
 
     char derivative_expr[MAX_LATEX_EXPRESSION_LENGTH] = {0};
     int pos = 0;
-    NodeToLatexString(derivative_tree->root, derivative_expr, &pos, sizeof(derivative_expr));
+    NodeToLatexString (derivative_tree->root, derivative_expr, &pos, sizeof(derivative_expr));
 
-    fprintf(current_latex_file, "Производная по $%c$: \\[ \\frac{d}{d%c} = %s \\]\n\n",
-            variable, variable, derivative_expr);
+    const char* derivative_notation = NULL;
+    char custom_notation[32] = {0};
 
-    if (!isnan(derivative_result))
+    if (derivative_order == 1)
     {
-        fprintf(current_latex_file, "Значение производной: \\[ %.6f \\]\n\n", derivative_result);
+        derivative_notation = "f'(x)";
+    }
+    else if (derivative_order == 2)
+    {
+        derivative_notation = "f''(x)";
+    }
+    else if (derivative_order == 3)
+    {
+        derivative_notation = "f'''(x)";
     }
     else
     {
-        fprintf(current_latex_file, "Значение производной: \\[ \\text{Требуются значения переменных} \\]\n\n");
+        snprintf (custom_notation, sizeof(custom_notation), "f^{(%d)}(x)", derivative_order);
+        derivative_notation = custom_notation;
     }
+
+    fprintf (file, "\\subsection*{Derivative of Order %d}\n", derivative_order);
+    fprintf (file, "Derivative: \\[ %s = %s \\]\n\n", derivative_notation, derivative_expr);
+
+    if (!isnan (derivative_result))
+    {
+        fprintf (file, "Value of derivative at point: \\[ %s = %.6f \\]\n\n", derivative_notation, derivative_result);
+    }
+    else
+    {
+        fprintf (file, "Value of derivative at point: \\[ %s = \\text{NaN (requires variable values)} \\]\n\n", derivative_notation);
+    }
+
+    return 0;
 }
 
-// Функция для создания полного дампа процесса
-void CreateFullLatexDump(const char* filename, Tree_t* original_tree, Tree_t* diff_tree,
-                        int is_simplified, int max_iterations)
+void CreateAdaptedLatexDump (Tree_t* original_tree, Tree_t* diff_tree, int is_simplified)
 {
-    if (StartLatexDump(filename) != 0) return;
-
-    // Исходная функция
-    double original_result = EvaluateTreeAdvanced(original_tree);
-    DumpOriginalFunction(original_tree, original_result);
-
-    // Процесс дифференцирования
-    fprintf(current_latex_file, "\\section*{Процесс дифференцирования}\n");
-
-    // Здесь можно добавить вызовы DumpDifferentiationStep из функций дифференцирования
-    // Для этого нужно модифицировать функции дифференцирования
-
-    // Результат дифференцирования
-    double derivative_result = EvaluateTreeAdvanced(diff_tree);
-    DumpDerivativeResult(diff_tree, derivative_result, 'A');
-
-    // Процесс упрощения
-    if (is_simplified)
+    FILE* latex_file = fopen ("adapted_dump.tex", "w");
+    if (!latex_file)
     {
-        fprintf(current_latex_file, "\\section*{Процесс упрощения}\n");
-        fprintf(current_latex_file, "Упрощение выполнено за %d итераций.\\\\\n", max_iterations);
-
-        // Здесь можно добавить вызовы DumpSimplificationStep из функций упрощения
-        // Для этого нужно модифицировать функции упрощения
-
-        DumpExpressionStep("Упрощенная производная", diff_tree, "Финальный результат упрощения");
+        printf ("ERROR: Cannot create LaTeX file\n");
+        return;
     }
 
-    EndLatexDump();
+    StartLatexDump (latex_file);
+
+    // Дамп исходного выражения
+    double original_result = EvaluateTreeAdvanced (original_tree);
+    DumpOriginalFunctionToFile (latex_file, original_tree, original_result);
+
+    // Дамп производной
+    double derivative_result = EvaluateTreeAdvanced (diff_tree);
+    DumpDerivativeToFile (latex_file, diff_tree, derivative_result, 1);
+
+    // Дамп упрощенной версии
+    if (is_simplified)
+    {
+        DumpOptimizationStepToFile (latex_file, "after simplification", diff_tree, derivative_result);
+    }
+
+    EndLatexDump(latex_file);
+    fclose(latex_file);
 
     // Компилируем LaTeX
-    printf("Компилируем LaTeX документ...\n");
-    char command[256];
-    snprintf(command, sizeof(command), "pdflatex -interaction=nonstopmode \"%s\"", filename);
-    int result = system(command);
+    printf("Compiling LaTeX document...\n");
+    int result = system ("pdflatex -interaction=nonstopmode adapted_dump.tex");
 
     if (result == 0)
     {
-        printf("PDF успешно создан: %s.pdf\n", filename);
+        printf ("LaTeX PDF generated successfully: adapted_dump.pdf\n");
     }
     else
     {
-        printf("Ошибка компиляции LaTeX документа\n");
+        printf ("Error compiling LaTeX document\n");
     }
 }
 
-// Функции для вызова из дифференцирования и упрощения
-void LatexDumpDiffStep(Tree_t* tree, const char* rule)
+void LatexDumpDifferentiationStep (LatexDumpState* state, const char* rule_used, Tree_t* original, Tree_t* derivative)
 {
-    DumpDifferentiationStep(rule, tree);
+    if (!state || !state->file || !rule_used || !original || !derivative) return;
+
+    fprintf (state->file, "\\subsection*{Применение правила дифференцирования}\n");
+    fprintf (state->file, "\\textbf{Правило:} %s\\\\\n", rule_used);
+
+    fprintf (state->file, "\\textbf{Исходное выражение:}\n\\[ ");
+    print_tree_latex (state->file, original->root);
+    fprintf (state->file, " \\]\n\n");
+
+    fprintf (state->file, "\\textbf{Производная:}\n\\[ ");
+    print_tree_latex (state->file, derivative->root);
+    fprintf (state->file, " \\]\n\n");
+
+    const char* funny_comment = get_funny_phrase();
+
+    fprintf (state->file, "\\textit{%s}\n\n", funny_comment);
+
+    state->step_counter++;
 }
 
-void LatexDumpSimplifyStep(Tree_t* tree, const char* rule)
+void LatexDumpSimplifyStep (LatexDumpState* state, const char* rule_used, Tree_t* before, Tree_t* after)
 {
-    DumpSimplificationStep(tree, rule);
+    if (!state || !state->file || !rule_used || !before || !after) return;
+
+    fprintf (state->file, "\\subsection*{Упрощение выражения}\n");
+    fprintf (state->file, "\\textbf{Правило:} %s\\\\\n", rule_used);
+
+    fprintf (state->file, "\\textbf{До упрощения:}\n\\[ ");
+    print_tree_latex (state->file, before->root);
+    fprintf (state->file, " \\]\n\n");
+
+    fprintf (state->file, "\\textbf{После упрощения:}\n\\[ ");
+    print_tree_latex (state->file, after->root);
+    fprintf (state->file, " \\]\n\n");
+
+    const char* funny_comment = get_funny_phrase();
+    fprintf (state->file, "\\textit{%s}\n\n", funny_comment);
+
+    state->step_counter++;
 }
 
+void LatexDumpDetailedProcess (Tree_t* original, Tree_t* derivative)
+{
+    LatexDumpState state = {};
+
+    CtorLatexDump (&state, "detailed_process_full.tex");
+
+    AddLatexStep (&state, "Исходное выражение", original);
+
+    AddLatexStep (&state, "Применение правил дифференцирования", derivative);
+
+    bool simplified = SimplifyUntilStable (derivative, MAX_LOOP_SIMPLE, &state);
+
+    if (simplified)
+    {
+        AddLatexStep (&state, "Результат после упрощения", derivative);
+    }
+
+    double result = EvaluateTreeAdvanced (derivative);
+    char eval_text[MAX_STR_SIZE] = {};
+    snprintf (eval_text, sizeof(eval_text), "Вычисление производной в точке: %.6f", result);
+    AddLatexStep(&state, eval_text, derivative);
+
+    DtorLatexDump(&state);
+}
