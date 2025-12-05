@@ -2,6 +2,7 @@
 #define DIFFERENTIATION_H
 
 #include "differenciator.h"
+#include "create_latex_dump.h"
 
 #define dL                  DifferentiateNode (tree, node->left,  variable)
 #define dR                  DifferentiateNode (tree, node->right, variable)
@@ -23,5 +24,7 @@
 
 #define NUM_(value)         CreateNumberNode(tree, value)
 #define VAR_(code)          CreateVariableNode(tree, code)
+
+Node_t* DifferentiateTreeN (Tree_t* tree, char variable, int n, LatexDumpState* latex_dump);
 
 #endif

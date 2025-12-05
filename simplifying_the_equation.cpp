@@ -176,7 +176,7 @@ void SimplificatoinPrimeNumbers (Node_t* node, Tree_t* tree, bool* changed, Late
         case SUB:
         {
             if (node->left == NULL)
-                printf("Унарный минус!\n");
+                printf("пїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅ!\n");
 
             if (IsZero (node->right)) // A-0
             {

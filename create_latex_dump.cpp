@@ -39,7 +39,7 @@ const char* funny_phrases[] = {
     "А ну вроде норм, ща подгоним:",
     "Еба тебе делать нехуй:",
     "Сук остановись уже даже мне похуй:",
-    "Пиздез у нас залупа получается:",
+    "Пиздец у нас залупа получается:",
     "Опа нихуя у нас не получилось опять:",
     "Ебать мне похуй уже:",
     "НИ ХУ Я не сходится с ответами:",
@@ -50,10 +50,10 @@ const char* funny_phrases[] = {
 
 const int PHRASES_COUNT = sizeof (funny_phrases) / sizeof (funny_phrases[0]);
 
-static int latex_call_count = 0;
-
-const char* get_funny_phrase ()
+const char* GetPhrase ()
 {
+    static int latex_call_count = 0;
+
     return funny_phrases[latex_call_count++ % PHRASES_COUNT];
 }
 
@@ -103,25 +103,22 @@ void AddLatexStep (LatexDumpState* state, const char* description, Tree_t* tree)
         state->current_funny_index++;
     }
 
+    fprintf (state->file, "\\subsection*{%s}\n", description);
     fprintf (state->file, "\\textit{%s}\\\\\n", funny_comment);
-    fprintf (state->file, "\\begin{multline*}\n");
+    fprintf (state->file, "\\begin{dmath}\n");
 
-    print_tree_latex (state->file, tree->root);
+    PrintTreeLatex (state->file, tree->root);
 
-    fprintf (state->file, "\n\\end{multline*}\n\n");
+    fprintf (state->file, "\n\\end{dmath}\n\n");
 
     state->step_counter++;
-
-    //printf ("LaTeX dump simplify step (two params): %s\n", description);
-
-    //printf ("Added LaTeX step %d: %s\n", state->step_counter - 1, description);
 }
 
-void print_tree_latex (FILE* file, Node_t* node)
+void PrintTreeLatex (FILE* file, Node_t* node)
 {
     if (!file || !node) return;
 
-    char buffer[MAX_STR_SIZE] = {};
+    char buffer[MAX_LATEX_EXPRESSION_LENGTH] = {};
     int pos = 0;
 
     NodeToLatexString (node, buffer, &pos, sizeof(buffer));
@@ -162,24 +159,19 @@ void DtorLatexDump (LatexDumpState* state)
 
 void NodeToLatexString (Node_t* node, char* buffer, int* pos, int buffer_size)
 {
-    if (node == NULL || *pos >= buffer_size - 1)
+    if (node == NULL || *pos >= buffer_size - 10)
         return;
-
-    if (*pos > 100 && (*pos % 80) < 10)
-    {
-        *pos += snprintf (buffer + *pos, buffer_size - *pos, "\\\\\n");
-    }
 
     switch (node->type)
     {
         case NUMBERTYPE:
-            *pos += snprintf (buffer + *pos, buffer_size - *pos, "%d", node->value.number);
+            *pos += snprintf(buffer + *pos, buffer_size - *pos, "%d", node->value.number);
             break;
 
         case VARIABLETYPE:
         {
-            char var_name = GetterNameVariable (node->value.variable_code);
-            *pos += snprintf (buffer + *pos, buffer_size - *pos, "%c", var_name);
+            char var_name = GetterNameVariable(node->value.variable_code);
+            *pos += snprintf(buffer + *pos, buffer_size - *pos, "%c", var_name);
             break;
         }
 
@@ -187,80 +179,219 @@ void NodeToLatexString (Node_t* node, char* buffer, int* pos, int buffer_size)
             switch (node->value.operator_type)
             {
                 case ADD:
-                    NodeToLatexString (node->left, buffer, pos, buffer_size);
-                    *pos += snprintf (buffer + *pos, buffer_size - *pos, " + ");
-                    NodeToLatexString (node->right, buffer, pos, buffer_size);
+                    NodeToLatexString(node->left, buffer, pos, buffer_size);
+                    *pos += snprintf(buffer + *pos, buffer_size - *pos, " + ");
+                    NodeToLatexString(node->right, buffer, pos, buffer_size);
                     break;
 
                 case SUB:
                     if (node->left)
                     {
-                        NodeToLatexString (node->left, buffer, pos, buffer_size);
-                        *pos += snprintf (buffer + *pos, buffer_size - *pos, " - ");
-                        NodeToLatexString (node->right, buffer, pos, buffer_size);
+                        NodeToLatexString(node->left, buffer, pos, buffer_size);
+                        *pos += snprintf(buffer + *pos, buffer_size - *pos, " - ");
+                        NodeToLatexString(node->right, buffer, pos, buffer_size);
                     }
                     else
                     {
-                        *pos += snprintf (buffer + *pos, buffer_size - *pos, "-");
-                        NodeToLatexString (node->right, buffer, pos, buffer_size);
+                        *pos += snprintf(buffer + *pos, buffer_size - *pos, "-");
+                        NodeToLatexString(node->right, buffer, pos, buffer_size);
                     }
                     break;
+
                 case MUL:
-                    NodeToLatexString (node->left, buffer, pos, buffer_size);
-                    *pos += snprintf (buffer + *pos, buffer_size - *pos, " \\cdot ");
-                    NodeToLatexString (node->right, buffer, pos, buffer_size);
+                    NodeToLatexString(node->left, buffer, pos, buffer_size);
+                    *pos += snprintf(buffer + *pos, buffer_size - *pos, " \\cdot ");
+                    NodeToLatexString(node->right, buffer, pos, buffer_size);
                     break;
 
                 case DIV:
-                    *pos += snprintf (buffer + *pos, buffer_size - *pos, "\\frac{");
-                    NodeToLatexString (node->left, buffer, pos, buffer_size);
-                    *pos += snprintf (buffer + *pos, buffer_size - *pos, "}{");
-                    NodeToLatexString (node->right, buffer, pos, buffer_size);
-                    *pos += snprintf (buffer + *pos, buffer_size - *pos, "}");
+                {
+                    // ПРОВЕРКА ДОСТАТОЧНОГО МЕСТА В БУФЕРЕ
+                    if (*pos + 50 >= buffer_size) {  // 50 - минимальный запас для \frac{}{}
+                        buffer[*pos] = '\0';
+                        printf("ERROR: Buffer too small for fraction\n");
+                        return;
+                    }
+
+                    int start_pos = *pos;
+                    *pos += snprintf(buffer + *pos, buffer_size - *pos, "\\frac{");
+
+                    NodeToLatexString(node->left, buffer, pos, buffer_size);
+
+                    if (*pos + 10 >= buffer_size) {
+                        buffer[start_pos] = '\0';  // Откат
+                        *pos = start_pos;
+                        printf("ERROR: Buffer overflow in fraction numerator\n");
+                        return;
+                    }
+
+                    *pos += snprintf(buffer + *pos, buffer_size - *pos, "}{");
+
+                    NodeToLatexString(node->right, buffer, pos, buffer_size);
+
+                    if (*pos + 2 >= buffer_size) {
+                        buffer[start_pos] = '\0';  // Откат
+                        *pos = start_pos;
+                        printf("ERROR: Buffer overflow in fraction denominator\n");
+                        return;
+                    }
+
+                    *pos += snprintf(buffer + *pos, buffer_size - *pos, "}");
+
+                    // ПРОВЕРКА ЧТО ДРОБЬ ЗАВЕРШЕНА
+                    if (buffer[*pos - 1] != '}') {
+                        buffer[start_pos] = '\0';
+                        *pos = start_pos;
+                        printf("ERROR: Fraction not properly closed\n");
+                    }
                     break;
+                }
 
                 case POW:
-                    *pos += snprintf (buffer + *pos, buffer_size - *pos, "{");
-                    NodeToLatexString (node->left, buffer, pos, buffer_size);
-                    *pos += snprintf (buffer + *pos, buffer_size - *pos, "}^{");
-                    NodeToLatexString (node->right, buffer, pos, buffer_size);
-                    *pos += snprintf (buffer + *pos, buffer_size - *pos, "}");
+                    *pos += snprintf(buffer + *pos, buffer_size - *pos, "{");
+                    NodeToLatexString(node->left, buffer, pos, buffer_size);
+                    *pos += snprintf(buffer + *pos, buffer_size - *pos, "}^{");
+                    NodeToLatexString(node->right, buffer, pos, buffer_size);
+                    *pos += snprintf(buffer + *pos, buffer_size - *pos, "}");
                     break;
 
                 case SIN:
-                    *pos += snprintf (buffer + *pos, buffer_size - *pos, "\\sin(");
-                    NodeToLatexString (node->left, buffer, pos, buffer_size);
-                    *pos += snprintf (buffer + *pos, buffer_size - *pos, ")");
+                    *pos += snprintf(buffer + *pos, buffer_size - *pos, "\\sin(");
+                    NodeToLatexString(node->left, buffer, pos, buffer_size);
+                    *pos += snprintf(buffer + *pos, buffer_size - *pos, ")");
                     break;
 
                 case COS:
-                    *pos += snprintf (buffer + *pos, buffer_size - *pos, "\\cos(");
-                    NodeToLatexString (node->left, buffer, pos, buffer_size);
-                    *pos += snprintf (buffer + *pos, buffer_size - *pos, ")");
+                    *pos += snprintf(buffer + *pos, buffer_size - *pos, "\\cos(");
+                    NodeToLatexString(node->left, buffer, pos, buffer_size);
+                    *pos += snprintf(buffer + *pos, buffer_size - *pos, ")");
                     break;
 
                 case TAN:
-                    *pos += snprintf (buffer + *pos, buffer_size - *pos, "\\tan(");
-                    NodeToLatexString (node->left, buffer, pos, buffer_size);
-                    *pos += snprintf (buffer + *pos, buffer_size - *pos, ")");
+                    *pos += snprintf(buffer + *pos, buffer_size - *pos, "\\tan(");
+                    NodeToLatexString(node->left, buffer, pos, buffer_size);
+                    *pos += snprintf(buffer + *pos, buffer_size - *pos, ")");
                     break;
 
                 case LN:
-                    *pos += snprintf (buffer + *pos, buffer_size - *pos, "\\ln(");
-                    NodeToLatexString (node->left, buffer, pos, buffer_size);
-                    *pos += snprintf (buffer + *pos, buffer_size - *pos, ")");
+                    *pos += snprintf(buffer + *pos, buffer_size - *pos, "\\ln(");
+                    NodeToLatexString(node->left, buffer, pos, buffer_size);
+                    *pos += snprintf(buffer + *pos, buffer_size - *pos, ")");
                     break;
+
                 case EXP:
-                    *pos += snprintf (buffer + *pos, buffer_size - *pos, "\\exp(");
-                    NodeToLatexString (node->left, buffer, pos, buffer_size);
-                    *pos += snprintf (buffer + *pos, buffer_size - *pos, ")");
+                    *pos += snprintf(buffer + *pos, buffer_size - *pos, "\\exp(");
+                    NodeToLatexString(node->left, buffer, pos, buffer_size);
+                    *pos += snprintf(buffer + *pos, buffer_size - *pos, ")");
+                    break;
+
                 default:
-                    *pos += snprintf (buffer + *pos, buffer_size - *pos, "?");
+                    *pos += snprintf(buffer + *pos, buffer_size - *pos, "");
+                    break;
             }
             break;
 
         default:
-            *pos += snprintf (buffer + *pos, buffer_size - *pos, "?");
+            printf("DEBUG: ERROR: invalid type of node in NodeToLatexString\n");
+            *pos += snprintf(buffer + *pos, buffer_size - *pos, "");
+    }
+}
+
+static void AddToBuffer(const char* format, char* buffer, int* pos, int buffer_size, ...)
+{
+    if (*pos >= buffer_size - 1)
+        return;
+
+    va_list args = {};
+    va_start(args, buffer_size);
+    *pos += vsnprintf (buffer + *pos, buffer_size - *pos, format, args);
+    va_end (args);
+}
+
+static void HandleOperatorLatex (Node_t* node, char* buffer, int* pos, int buffer_size)
+{
+    switch (node->value.operator_type)
+    {
+        case ADD:
+            HandleBinaryLatex (node, buffer, pos, buffer_size, " + ");
+            break;
+
+        case SUB:
+            HandleSubtractionLatex (node, buffer, pos, buffer_size);
+            break;
+
+        case MUL:
+            HandleBinaryLatex (node, buffer, pos, buffer_size, " \\cdot ");
+            break;
+
+        case DIV:
+            AddToBuffer("\\frac{", buffer, pos, buffer_size);
+            NodeToLatexString(node->left, buffer, pos, buffer_size);
+            AddToBuffer("}{", buffer, pos, buffer_size);
+            NodeToLatexString(node->right, buffer, pos, buffer_size);
+            AddToBuffer("}", buffer, pos, buffer_size);
+            break;
+
+        case POW:
+            AddToBuffer ("{", buffer, pos, buffer_size);
+            NodeToLatexString(node->left, buffer, pos, buffer_size);
+            AddToBuffer ("}^{", buffer, pos, buffer_size);
+            NodeToLatexString(node->right, buffer, pos, buffer_size);
+            AddToBuffer ("}", buffer, pos, buffer_size);
+            break;
+
+        case SIN:
+        case COS:
+        case TAN:
+        case LN:
+        case EXP:
+            HandleFunctionLatex (node, buffer, pos, buffer_size);
+            break;
+
+        default:
+            break;
+    }
+}
+
+static void HandleBinaryLatex (Node_t* node, char* buffer, int* pos, int buffer_size, const char* op_str)
+{
+    NodeToLatexString (node->left, buffer, pos, buffer_size);
+    AddToBuffer ("%s", buffer, pos, buffer_size, op_str);
+    NodeToLatexString (node->right, buffer, pos, buffer_size);
+}
+
+static void HandleSubtractionLatex(Node_t* node, char* buffer, int* pos, int buffer_size)
+{
+    if (node->left) // Бинарное вычитание
+    {
+        HandleBinaryLatex(node, buffer, pos, buffer_size, " - ");
+    }
+    else // Унарный минус
+    {
+        AddToBuffer("-", buffer, pos, buffer_size);
+        NodeToLatexString(node->right, buffer, pos, buffer_size);
+    }
+}
+
+static void HandleFunctionLatex (Node_t* node, char* buffer, int* pos, int buffer_size)
+{
+    const char* func_name = GetFunctionLatexName (node);
+
+    AddToBuffer ("%s(", buffer, pos, buffer_size, func_name);
+    NodeToLatexString (node->left, buffer, pos, buffer_size);
+    AddToBuffer (")", buffer, pos, buffer_size);
+}
+
+static const char* GetFunctionLatexName (Node_t* node)
+{
+    switch (node->value.operator_type)
+    {
+        case SIN: return "\\sin";
+        case COS: return "\\cos";
+        case TAN: return "\\tan";
+        case LN:  return "\\ln";
+        case EXP: return "\\exp";
+        default:  return "";
     }
 }
 
@@ -275,6 +406,13 @@ int StartLatexDump (FILE* file)
     fprintf(file, "\\usepackage[russian]{babel}\n");
     fprintf(file, "\\usepackage{amsmath}\n");
     fprintf(file, "\\usepackage{geometry}\n");
+
+    fprintf(file, "\\sloppy\n");
+    fprintf(file, "\\tolerance=9999\n");
+    fprintf(file, "\\emergencystretch=10pt\n");
+    fprintf(file, "\\hbadness=10000\n");
+
+    fprintf(file, "\\usepackage{breqn}\n");
     fprintf(file, "\\geometry{a4paper, left=10mm, right=10mm, top=30mm, bottom=30mm}\n");
     fprintf(file, "\\begin{document}\n\n");
 
@@ -323,7 +461,7 @@ int DumpOptimizationStepToFile (FILE* file, const char* description, Tree_t* tre
     fprintf(file, "\\subsubsection*{Optimization Step}\n");
     fprintf(file, "It is easy to see that %s:\n\n", description);
 
-    char expression[MAX_LATEX_EXPRESSION_LENGTH] = {0};
+    char expression[MAX_LATEX_EXPRESSION_LENGTH] = {};
     int pos = 0;
     NodeToLatexString(tree->root, expression, &pos, sizeof(expression));
 
@@ -348,7 +486,7 @@ int DumpDerivativeToFile (FILE* file, Tree_t* derivative_tree, double derivative
     if (file == NULL || derivative_tree == NULL)
         return -1;
 
-    char derivative_expr[MAX_LATEX_EXPRESSION_LENGTH] = {0};
+    char derivative_expr[MAX_LATEX_EXPRESSION_LENGTH] = {};
     int pos = 0;
     NodeToLatexString (derivative_tree->root, derivative_expr, &pos, sizeof(derivative_expr));
 
@@ -438,14 +576,14 @@ void LatexDumpDifferentiationStep (LatexDumpState* state, const char* rule_used,
     fprintf (state->file, "\\textbf{Правило:} %s\\\\\n", rule_used);
 
     fprintf (state->file, "\\textbf{Исходное выражение:}\n\\[ ");
-    print_tree_latex (state->file, original->root);
+    PrintTreeLatex (state->file, original->root);
     fprintf (state->file, " \\]\n\n");
 
     fprintf (state->file, "\\textbf{Производная:}\n\\[ ");
-    print_tree_latex (state->file, derivative->root);
+    PrintTreeLatex (state->file, derivative->root);
     fprintf (state->file, " \\]\n\n");
 
-    const char* funny_comment = get_funny_phrase();
+    const char* funny_comment = GetPhrase ();
 
     fprintf (state->file, "\\textit{%s}\n\n", funny_comment);
 
@@ -460,14 +598,14 @@ void LatexDumpSimplifyStep (LatexDumpState* state, const char* rule_used, Tree_t
     fprintf (state->file, "\\textbf{Правило:} %s\\\\\n", rule_used);
 
     fprintf (state->file, "\\textbf{До упрощения:}\n\\[ ");
-    print_tree_latex (state->file, before->root);
+    PrintTreeLatex (state->file, before->root);
     fprintf (state->file, " \\]\n\n");
 
     fprintf (state->file, "\\textbf{После упрощения:}\n\\[ ");
-    print_tree_latex (state->file, after->root);
+    PrintTreeLatex (state->file, after->root);
     fprintf (state->file, " \\]\n\n");
 
-    const char* funny_comment = get_funny_phrase();
+    const char* funny_comment = GetPhrase ();
     fprintf (state->file, "\\textit{%s}\n\n", funny_comment);
 
     state->step_counter++;
@@ -497,3 +635,77 @@ void LatexDumpDetailedProcess (Tree_t* original, Tree_t* derivative)
 
     DtorLatexDump(&state);
 }
+
+/*switch (node->value.operator_type)
+            {
+                case ADD:
+                    NodeToLatexString (node->left, buffer, pos, buffer_size);
+                    *pos += snprintf (buffer + *pos, buffer_size - *pos, " + ");
+                    NodeToLatexString (node->right, buffer, pos, buffer_size);
+                    break;
+
+                case SUB: // TODO: remove copypaste
+                    if (node->left)
+                    {
+                        NodeToLatexString (node->left, buffer, pos, buffer_size);
+                        *pos += snprintf (buffer + *pos, buffer_size - *pos, " - ");
+                        NodeToLatexString (node->right, buffer, pos, buffer_size);
+                    }
+                    else
+                    {
+                        *pos += snprintf (buffer + *pos, buffer_size - *pos, "-");
+                        NodeToLatexString (node->right, buffer, pos, buffer_size);
+                    }
+                    break;
+                case MUL:
+                    NodeToLatexString (node->left, buffer, pos, buffer_size);
+                    *pos += snprintf (buffer + *pos, buffer_size - *pos, " \\cdot ");
+                    NodeToLatexString (node->right, buffer, pos, buffer_size);
+                    break;
+
+                case DIV:
+                    *pos += snprintf (buffer + *pos, buffer_size - *pos, "\\frac{");
+                    NodeToLatexString (node->left, buffer, pos, buffer_size);
+                    *pos += snprintf (buffer + *pos, buffer_size - *pos, "}{");
+                    NodeToLatexString (node->right, buffer, pos, buffer_size);
+                    *pos += snprintf (buffer + *pos, buffer_size - *pos, "}");
+                    break;
+
+                case POW:
+                    *pos += snprintf (buffer + *pos, buffer_size - *pos, "{");
+                    NodeToLatexString (node->left, buffer, pos, buffer_size);
+                    *pos += snprintf (buffer + *pos, buffer_size - *pos, "}^{");
+                    NodeToLatexString (node->right, buffer, pos, buffer_size);
+                    *pos += snprintf (buffer + *pos, buffer_size - *pos, "}");
+                    break;
+
+                case SIN:
+                    *pos += snprintf (buffer + *pos, buffer_size - *pos, "\\sin(");
+                    NodeToLatexString (node->left, buffer, pos, buffer_size);
+                    *pos += snprintf (buffer + *pos, buffer_size - *pos, ")");
+                    break;
+
+                case COS:
+                    *pos += snprintf (buffer + *pos, buffer_size - *pos, "\\cos(");
+                    NodeToLatexString (node->left, buffer, pos, buffer_size);
+                    *pos += snprintf (buffer + *pos, buffer_size - *pos, ")");
+                    break;
+
+                case TAN:
+                    *pos += snprintf (buffer + *pos, buffer_size - *pos, "\\tan(");
+                    NodeToLatexString (node->left, buffer, pos, buffer_size);
+                    *pos += snprintf (buffer + *pos, buffer_size - *pos, ")");
+                    break;
+
+                case LN:
+                    *pos += snprintf (buffer + *pos, buffer_size - *pos, "\\ln(");
+                    NodeToLatexString (node->left, buffer, pos, buffer_size);
+                    *pos += snprintf (buffer + *pos, buffer_size - *pos, ")");
+                    break;
+                case EXP:
+                    *pos += snprintf (buffer + *pos, buffer_size - *pos, "\\exp(");
+                    NodeToLatexString (node->left, buffer, pos, buffer_size);
+                    *pos += snprintf (buffer + *pos, buffer_size - *pos, ")");
+                default:
+                    *pos += snprintf (buffer + *pos, buffer_size - *pos, "");
+            }*/

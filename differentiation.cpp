@@ -1,7 +1,8 @@
 #include "differenciator.h"
 #include "differentiation.h"
-#include "create_dump_files.h"
 #include "create_latex_dump.h"
+#include "simplifying_the_equation.h"
+#include "create_dump_files.h"
 
 Node_t* CopySubtree (Tree_t* tree, Node_t* node)
 {
@@ -19,6 +20,7 @@ Node_t* CopySubtree (Tree_t* tree, Node_t* node)
 
 Node_t* DifferentiateNode (Tree_t* tree, Node_t* node, char variable)
 {
+    // TODO: tree_verify
     assert (tree);
 
     if (!node) return NULL;
@@ -145,4 +147,91 @@ Node_t* NewNode (Tree_t* tree, int type, union NodeValue value, Node_t* left, No
     return new_node;
 }
 
-//Node_t* DifferentiateTreeN
+Node_t* DifferentiateTreeN (Tree_t* tree, char variable, int n, LatexDumpState* latex_dump)
+{
+    assert (tree);
+    assert (n >= 0);
+
+    printf ("========== CALCULATE OF THE %d DERIVATIVE ===\n", n);
+
+    if (n == 0)
+    {
+        if (latex_dump) AddLatexStep (latex_dump, "The first derivate of tree, it't simple tree", tree);
+        return CopySubtree (tree, tree->root);
+    }
+    Tree_t* current_tree = NULL;
+    TreeCtor(&current_tree);
+
+    if (!current_tree)
+    {
+        printf("ERROR: Failed to create temporary tree\n");
+        return NULL;
+    }
+
+    current_tree->root = CopySubtree (tree, tree->root);
+    Node_t* result = NULL;
+
+    for (int i = 1; i <= n; i++)
+    {
+        // TODO: take derivative
+        printf ("=====Differentiation step %d/%d=====", i, n);
+
+        if (latex_dump)
+        {
+            char before_title[MAX_STR_SIZE] = {};
+            if (i == 1)
+                snprintf(before_title, sizeof(before_title), "Исходная функция");
+            else
+                snprintf(before_title, sizeof(before_title), "Производная %d-го порядка (перед дифференцированием)", i-1);
+
+            AddLatexStep(latex_dump, before_title, current_tree);
+        }
+
+        Node_t* derivative = DifferentiateNode (tree, current_tree->root, variable);
+
+        if (!derivative)
+        {
+            printf ("ERORR: Differentiation failed at %d step", i+1);
+
+            TreeDtor (current_tree);
+            return NULL;
+        }
+
+        if (latex_dump)
+        {
+            char raw_title[MAX_STR_SIZE] = {};
+            snprintf(raw_title, sizeof(raw_title),
+                     "Производная шаг %d (после дифференцирования)", i);
+            AddLatexStep(latex_dump, raw_title, current_tree);
+        }
+
+        DeleteSubtree (current_tree, &current_tree->root);
+        current_tree->root = derivative;
+
+        if (latex_dump)
+        {
+            char raw_title[MAX_STR_SIZE] = {};
+            snprintf(raw_title, sizeof(raw_title),
+                     "Сырая производная шаг %d (после дифференцирования)", i);
+            AddLatexStep(latex_dump, raw_title, current_tree);
+        }
+
+        bool simplified = SimplifyUntilStable(current_tree, 30, latex_dump);
+
+        AddLatexStep(latex_dump, "Результат дифференцирования после упрощения", current_tree);
+
+        printf ("Simplifying derivative %d...\n", i+1);
+
+        #ifdef DEBUG
+            QUICK_DUMP(tree, "After differentiation step");
+        #endif
+
+        printf("Derivative %d calculated and simplified\n", i+1);
+    }
+
+    result = CopySubtree (tree, current_tree->root);
+
+    printf ("\n=== %d DERIVATIVE COMPLETE ===\n", n);
+
+    return result;
+}

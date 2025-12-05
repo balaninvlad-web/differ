@@ -1,6 +1,7 @@
 #include "differenciator.h"
-#include "create_dump_files.h"
 #include "create_latex_dump.h"
+#include "differentiation.h"
+#include "create_dump_files.h"
 #include "simplifying_the_equation.h"
 
 int main (int argc, char* argv[])
@@ -21,10 +22,7 @@ int main (int argc, char* argv[])
         TreeErr_t load_result = LoadMathExpressionFromFile (Tree, filename);
 
         if (load_result != NOERORR)
-        {
             printf ("Failed to load from %s, creating default tree...\n", filename);
-            //CreateDefaultTree (Tree);
-        }
     }
     else
     {
@@ -57,15 +55,32 @@ int main (int argc, char* argv[])
     AddLatexStep (&latex_dump, "Результат дифференцирования", DiffTree);
 
     bool simplified1 = SimplifyUntilStable (Tree, MAX_LOOP_SIMPLE, &latex_dump);
-    printf("Tree simplified: %s\n", simplified1 ? "YES" : "NO");
+    printf ("Tree simplified: %s\n", simplified1 ? "YES" : "NO");
     QUICK_DUMP (Tree, "Tree after Simplification");
     AddLatexStep (&latex_dump, "Результат упрощения исходного выражения", Tree);
 
 
     bool simplified2 = SimplifyUntilStable (DiffTree, MAX_LOOP_SIMPLE, &latex_dump);
-    printf("DiffTree simplified: %s\n", simplified2 ? "YES" : "NO");
+    printf ("DiffTree simplified: %s\n", simplified2 ? "YES" : "NO");
     QUICK_DUMP (DiffTree, "DiffTree after Simplification");
     AddLatexStep (&latex_dump, "Результат упрощения производной исходного выражения", DiffTree);
+
+    int derivative_order = 1;
+    printf("\nВведите порядок производной (n): ");
+    scanf("%d", &derivative_order);
+
+    if (derivative_order < 0)
+    {
+        printf ("ERROR: Derivative order must be non-negative\n");
+        derivative_order = 1;
+    }
+
+    printf("\n=== CALCULATING %d-TH DERIVATIVE with respect to '%c' ===\n",
+           derivative_order, 'x');
+
+    Tree_t* DerivativeTree = NULL;
+    TreeCtor (&DerivativeTree);
+    DerivativeTree->root = DifferentiateTreeN (Tree, 'x', derivative_order, &latex_dump);
 
     printf("\n=== CREATING STEP-BY-STEP DUMP ===\n");
 
@@ -73,7 +88,8 @@ int main (int argc, char* argv[])
 
     system ("dot -V");
     Close_html_file ();
-    TreeDtor (Tree);
-    TreeDtor (DiffTree);
+    if (Tree) TreeDtor (Tree);
+    if (DerivativeTree) TreeDtor (DerivativeTree);
+    if (DiffTree) TreeDtor (DiffTree);
     DtorLatexDump (&latex_dump);
 }

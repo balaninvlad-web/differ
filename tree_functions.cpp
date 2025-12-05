@@ -159,34 +159,45 @@ TreeErr_t TreeDtor (Tree_t* tree)
 
 TreeErr_t PrintNode (const Node_t* node)
 {
-    if (!node)
+    if (!node) return ERORRNODENULL;
+
+    if (node->type == NUMBERTYPE)
     {
-        fprintf(stderr, "ERROR: Trying to print NULL node\n");
-
-        return ERORRNODENULL;
-    }
-
-    printf ("(");
-
-    switch (node->type)
+        printf ("%d", node->value.number);
+    } else if (node->type == VARIABLETYPE)
     {
-        case NUMBERTYPE:
-            printf ("NUM:%d", node->value.number);
-            break;
-        case VARIABLETYPE:
-            printf ("VAR:%c", GetterNameVariable (node->value.variable_code));
-            break;
-        case OPERATORTYPE:
-            printf ("OP:%s", GetOperatorName (node->value.variable_code));
-            break;
-        default:
-            printf ("UNKNOWN");
+        char var_name = GetterNameVariable (node->value.variable_code);
+        printf ("%c", var_name);
+    } else if (node->type == OPERATORTYPE)
+    {
+        printf("(");
+        PrintNode (node->left);
+
+        switch (node->value.operator_type)
+        {
+            case ADD: printf (" + "); break;
+            case SUB: printf (" - "); break;
+            case MUL: printf (" * "); break;
+            case DIV: printf (" / "); break;
+            case POW: printf (" ^ "); break;
+            case SIN: printf ("sin("); break;
+            case COS: printf ("cos("); break;
+            case TAN: printf ("tan("); break;
+            case LN:  printf ("ln("); break;
+            case EXP: printf ("exp("); break;
+            default: printf ("?");
+        }
+
+        if (node->value.operator_type >= SIN && node->value.operator_type <= EXP) {
+            PrintNode (node->left);
+            printf (")");
+        }
+        else
+        {
+            PrintNode (node->right);
+            printf (")");
+        }
     }
-
-    if (node->right)
-        PrintNode (node->right);
-
-    printf(")");
 
     return NOERORR;
 }
