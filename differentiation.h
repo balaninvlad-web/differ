@@ -26,5 +26,6 @@
 #define VAR_(code)          CreateVariableNode(tree, code)
 
 Node_t* DifferentiateTreeN (Tree_t* tree, char variable, int n, LatexDumpState* latex_dump);
+void SubstitudeVariableWithValue(Node_t* node, char variable, double value);
 
 #endif

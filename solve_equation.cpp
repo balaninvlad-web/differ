@@ -184,3 +184,57 @@ int CheckVariableExists (int var_code, int* variables, int count)
     }
     return 0;
 }
+
+void SubstitudeVariableWithValue(Node_t* node, char variable, double value)
+{
+    if (!node) return;
+
+    if (node->type == VARIABLETYPE)
+    {
+        char node_var = GetterNameVariable(node->value.variable_code);
+        if (node_var == variable)
+        {
+            node->type = NUMBERTYPE;
+            node->value.number = (int)round(value);
+        }
+    }
+
+    if (node->left) SubstitudeVariableWithValue(node->left, variable, value);
+    if (node->right) SubstitudeVariableWithValue(node->right, variable, value);
+}
+
+double EvaluateAtPoint(Tree_t* tree, char variable, double value)
+{
+    if (!tree || !tree->root) return NAN;
+
+    Tree_t* temp_tree = NULL;
+    TreeCtor(&temp_tree);
+    if (!temp_tree) return NAN;
+
+    temp_tree->root = CopySubtree(tree, tree->root);
+    if (!temp_tree->root)
+    {
+        TreeDtor(temp_tree);
+        return NAN;
+    }
+
+    SubstitudeVariableWithValue (temp_tree->root, variable, value);
+
+    int variable_code = 0;
+    switch (variable)
+    {
+        case 'x': variable_code = ARGX; break;
+        case 'y': variable_code = ARGY; break;
+        case 'z': variable_code = ARGZ; break;
+        case 'A': variable_code = ARGA; break;
+        case 'B': variable_code = ARGB; break;
+        default:  variable_code = ARGX; break;
+    }
+
+    Variable_t var_values[1] = {{variable, value}};
+
+    double result = EvaluateNodeAdvanced (temp_tree->root, var_values, 1);
+
+    TreeDtor(temp_tree);
+    return result;
+}

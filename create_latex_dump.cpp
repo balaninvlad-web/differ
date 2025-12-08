@@ -7,6 +7,7 @@
 #include "create_latex_dump.h"
 #include "differentiation.h"
 #include "simplifying_the_equation.h"
+#include "make_teilor.h"
 
 const char* funny_phrases[] = {
     "Очевидно, что:",
@@ -286,14 +287,13 @@ void NodeToLatexString (Node_t* node, char* buffer, int* pos, int buffer_size)
                     break;
 
                 default:
-                    *pos += snprintf(buffer + *pos, buffer_size - *pos, "");
+                    *pos += 0;
                     break;
             }
             break;
 
         default:
             printf("DEBUG: ERROR: invalid type of node in NodeToLatexString\n");
-            *pos += snprintf(buffer + *pos, buffer_size - *pos, "");
     }
 }
 
@@ -634,6 +634,135 @@ void LatexDumpDetailedProcess (Tree_t* original, Tree_t* derivative)
     AddLatexStep(&state, eval_text, derivative);
 
     DtorLatexDump(&state);
+}
+
+void LatexDumpTaylorSeries(LatexDumpState* state, TaylorSeries* series, Tree_t* tree)
+{
+    if (!state || !state->file || !series || !tree)
+    {
+        printf("WARNING: Cannot dump Taylor series - invalid parameters\n");
+        return;
+    }
+
+    fprintf(state->file, "\\section*{Ряд Тейлора}\n\n");
+
+    fprintf (state->file, "\\subsection*{Исходная функция}\n");
+    fprintf (state->file, "\\begin{dmath}\n");
+    PrintTreeLatex (state->file, tree->root);
+    fprintf (state->file, "\n\\end{dmath}\n\n");
+
+    fprintf (state->file, "Разложение в точке $x_0 = %g$ до порядка $%d$:\n\n",
+            series->x0, series->max_order);
+
+    fprintf (state->file, "\\begin{dmath}\n");
+    fprintf (state->file, "f(x) = ");
+
+    int first_nonzero = -1;
+    for (int i = 0; i <= series->max_order; i++)
+    {
+        if (fabs (series->coefficients[i].coefficient) > 1e-10)
+        {
+            first_nonzero = i;
+            break;
+        }
+    }
+
+    if (first_nonzero >= 0)
+    {
+        double coeff = series->coefficients[first_nonzero].coefficient;
+
+        if (first_nonzero == 0)
+            fprintf (state->file, "%.6g", coeff);
+        else if (first_nonzero == 1)
+        {
+            if (fabs(coeff - 1.0) < 1e-10)
+                fprintf(state->file, "(x - %g)", series->x0);
+            else if (fabs(coeff + 1.0) < 1e-10)
+                fprintf(state->file, "-(x - %g)", series->x0);
+            else
+                fprintf(state->file, "%.6g (x - %g)", coeff, series->x0);
+        }
+        else
+        {
+            if (fabs (coeff - 1.0) < 1e-10)
+                fprintf (state->file, "(x - %g)^{%d}", series->x0, first_nonzero);
+            else if (fabs (coeff + 1.0) < 1e-10)
+                fprintf (state->file, "-(x - %g)^{%d}", series->x0, first_nonzero);
+            else
+                fprintf (state->file, "%.6g (x - %g)^{%d}", coeff, series->x0, first_nonzero);
+        }
+
+        for (int i = first_nonzero + 1; i <= series->max_order; i++)
+        {
+            coeff = series->coefficients[i].coefficient;
+
+            if (fabs(coeff) < 1e-10) continue;
+
+            fprintf(state->file, " + ");
+
+            if (i == 1)
+            {
+                if (fabs(coeff - 1.0) < 1e-10)
+                    fprintf(state->file, "(x - %g)", series->x0);
+                else if (fabs(coeff + 1.0) < 1e-10)
+                    fprintf(state->file, "-(x - %g)", series->x0);
+                else
+                    fprintf(state->file, "%.6g (x - %g)", coeff, series->x0);
+            }
+            else
+            {
+                if (fabs(coeff - 1.0) < 1e-10)
+                    fprintf(state->file, "(x - %g)^{%d}", series->x0, i);
+                else if (fabs(coeff + 1.0) < 1e-10)
+                    fprintf(state->file, "-(x - %g)^{%d}", series->x0, i);
+                else
+                    fprintf(state->file, "%.6g (x - %g)^{%d}", coeff, series->x0, i);
+            }
+        }
+
+        fprintf(state->file, " + o\\left((x - %g)^{%d}\\right)", series->x0, series->max_order);
+    }
+    else
+    {
+        fprintf(state->file, "0");
+    }
+
+    fprintf (state->file, "\n\\end{dmath}\n\n");
+
+    // Таблица коэффициентов
+    fprintf (state->file, "\\subsection*{Коэффициенты ряда Тейлора}\n");
+    fprintf (state->file, "\\begin{center}\n");
+    fprintf (state->file, "\\begin{tabular}{|c|c|c|}\n");
+    fprintf (state->file, "\\hline\n");
+    fprintf (state->file, "Порядок $n$ & $f^{(n)}(%g)$ & Коэффициент $a_n = \\frac{f^{(n)}(%g)}{n!}$ \\\\\n",
+            series->x0, series->x0);
+    fprintf (state->file, "\\hline\n");
+
+    for (int i = 0; i <= series->max_order; i++)
+    {
+        fprintf(state->file, "%d & ", i);
+
+        if (isnan (series->coefficients[i].indoor_value))
+            fprintf (state->file, "--- & ");
+        else
+            fprintf (state->file, "$%.6g$ & ", series->coefficients[i].indoor_value);
+
+        if (isnan (series->coefficients[i].coefficient))
+            fprintf (state->file, "--- \\\\\n");
+        else
+            fprintf (state->file, "$%.6g$ \\\\\n", series->coefficients[i].coefficient);
+
+        fprintf (state->file, "\\hline\n");
+    }
+
+    fprintf (state->file, "\\end{tabular}\n");
+    fprintf (state->file, "\\end{center}\n\n");
+
+
+    const char* funny_comment = GetPhrase();
+    fprintf (state->file, "\\textit{%s}\n\n", funny_comment);
+
+    state->step_counter++;
 }
 
 /*switch (node->value.operator_type)

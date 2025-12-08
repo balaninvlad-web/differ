@@ -216,9 +216,11 @@ Node_t* DifferentiateTreeN (Tree_t* tree, char variable, int n, LatexDumpState* 
             AddLatexStep(latex_dump, raw_title, current_tree);
         }
 
-        bool simplified = SimplifyUntilStable(current_tree, 30, latex_dump);
+        SimplifyUntilStable(current_tree, 30, latex_dump);
 
-        AddLatexStep(latex_dump, "Результат дифференцирования после упрощения", current_tree);
+        AddLatexStep (latex_dump, "Исходное выражение", tree);
+        AddLatexStep (latex_dump, "Исходное выражение", tree);
+        AddLatexStep (latex_dump, "Результат дифференцирования после упрощения", current_tree);
 
         printf ("Simplifying derivative %d...\n", i+1);
 
@@ -235,3 +237,4 @@ Node_t* DifferentiateTreeN (Tree_t* tree, char variable, int n, LatexDumpState* 
 
     return result;
 }
+

@@ -3,6 +3,7 @@
 #include "differentiation.h"
 #include "create_dump_files.h"
 #include "simplifying_the_equation.h"
+#include "make_teilor.h"
 
 int main (int argc, char* argv[])
 {
@@ -40,6 +41,16 @@ int main (int argc, char* argv[])
     double result = EvaluateTreeAdvanced (Tree);
     printf ("Result: %f\n", result);
 
+    int teilor_order = 1;
+    printf("\nВведите порядок тейлора (n): ");
+    scanf("%d", &teilor_order);
+    double x0 = 0;
+    printf("\nВведите вокруг какой точки раскладывать (n): ");
+    scanf("%lf", &x0);
+
+    TaylorSeries* Series = {};
+    Series = ComputeTaylorSeries (Tree,'x', x0, teilor_order, &latex_dump);
+
     printf("\n=== DIFFERENTIATION ===\n");
     Tree_t* DiffTree = NULL;
     TreeCtor (&DiffTree);
@@ -63,6 +74,7 @@ int main (int argc, char* argv[])
     bool simplified2 = SimplifyUntilStable (DiffTree, MAX_LOOP_SIMPLE, &latex_dump);
     printf ("DiffTree simplified: %s\n", simplified2 ? "YES" : "NO");
     QUICK_DUMP (DiffTree, "DiffTree after Simplification");
+    AddLatexStep (&latex_dump, "Исходное выражение", Tree);
     AddLatexStep (&latex_dump, "Результат упрощения производной исходного выражения", DiffTree);
 
     int derivative_order = 1;
@@ -86,10 +98,13 @@ int main (int argc, char* argv[])
 
     Create_log_file (Tree, "tree_dump.dot", DUMP_NORMAL, NULL);
 
+    if (Series) LatexDumpTaylorSeries(&latex_dump, Series, Tree);
+
     system ("dot -V");
     Close_html_file ();
     if (Tree) TreeDtor (Tree);
     if (DerivativeTree) TreeDtor (DerivativeTree);
     if (DiffTree) TreeDtor (DiffTree);
+    if (Series) free (Series);
     DtorLatexDump (&latex_dump);
 }

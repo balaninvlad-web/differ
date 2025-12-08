@@ -161,6 +161,7 @@ double EvaluateTreeAdvanced (Tree_t* tree);
 char GetterNameVariable (int variable_code);
 double GetVariableValue (char var_name, Variable_t* variables, int var_count);
 int CheckVariableExists (int var_code, int* variables, int count);
+double EvaluateAtPoint (Tree_t* tree, char variable, double value);
 
 struct Node_t* CopySubtree (struct Tree_t* tree, struct Node_t* node);
 Node_t* DifferentiateNode (Tree_t* tree, Node_t* node, char variable);

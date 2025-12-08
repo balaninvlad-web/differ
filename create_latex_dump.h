@@ -2,6 +2,7 @@
 #define CREATE_LATEX_DUMP_ADAPTED_H
 
 #include "differenciator.h"
+typedef struct TaylorSeries TaylorSeries;
 
 const int MAX_LATEX_EXPRESSION_LENGTH = 50000;
 
@@ -36,4 +37,8 @@ static void HandleBinaryLatex(Node_t* node, char* buffer, int* pos, int buffer_s
 static void HandleSubtractionLatex(Node_t* node, char* buffer, int* pos, int buffer_size);
 static void HandleFunctionLatex(Node_t* node, char* buffer, int* pos, int buffer_size);
 static const char* GetFunctionLatexName (Node_t* node);
+
+void LatexDumpTaylorSeries(LatexDumpState* state, TaylorSeries* series, Tree_t* original_function);
+
+
 #endif

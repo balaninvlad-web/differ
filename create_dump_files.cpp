@@ -303,6 +303,7 @@ void Create_dump_files (Tree_t* tree, const char* file, const char* func, int li
     assert (file);
     assert (func);
     assert (reason);
+    (void)line;
 
     char formatted_reason[300] = {};
 
